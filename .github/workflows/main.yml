@@ -1,0 +1,85 @@
+name: Generate DNSBL with Magpie
+
+on:
+  schedule:
+    - cron: '0 2 * * *'  # Runs daily at 2 AM UTC
+  workflow_dispatch:      # Allows manual trigger from GitHub UI
+
+jobs:
+  aggregate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30   # Safety timeout
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+          cache: true
+          
+      - name: Install Magpie
+        run: |
+          go install github.com/pigeonsec/magpie/cmd/magpie@latest
+          echo "✅ Magpie installed"
+          
+      - name: Show sources
+        run: |
+          echo "📋 Using sources from sources.txt:"
+          cat sources.txt
+          echo -e "\n📊 Total sources: $(grep -v '^#' sources.txt | grep -v '^$' | wc -l)"
+          
+      - name: Run Magpie (DNS validation)
+        run: |
+          # Create data directory for stats
+          mkdir -p data
+          
+          # Run with recommended settings from docs
+          ~/go/bin/magpie \
+            -sources sources.txt \
+            -output blocklist.txt \
+            -workers 100 \
+            -fetch-workers 5 \
+            -dns true \
+            -cache true \
+            -data-dir ./data
+          
+      - name: Run stats
+        run: |
+          echo "📊 Aggregation Statistics:"
+          ~/go/bin/magpie --stats --data-dir ./data || true
+          
+      - name: Generate summary
+        run: |
+          TOTAL=$(wc -l < blocklist.txt 2>/dev/null || echo "0")
+          echo "## Magpie DNSBL Update" > summary.md
+          echo "" >> summary.md
+          echo "- **Generated:** $(date -u)" >> summary.md
+          echo "- **Total domains:** $TOTAL" >> summary.md
+          echo "- **Sources:** $(grep -v '^#' sources.txt | grep -v '^$' | wc -l)" >> summary.md
+          
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dnsbl-output
+          path: |
+            blocklist.txt
+            data/stats.json
+            summary.md
+          retention-days: 7
+          
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: daily-${{ github.run_number }}
+          name: "DNSBL Update #${{ github.run_number }}"
+          body_path: summary.md
+          files: |
+            blocklist.txt
+          make_latest: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
