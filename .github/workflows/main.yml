@@ -40,22 +40,27 @@ jobs:
           
           # Run with recommended settings from docs
           ~/go/bin/magpie \
-            -sources sources.txt \
+            -source sources.txt \
             -output blocklist.txt \
             -workers 100 \
             -fetch-workers 5 \
-            -dns true \
-            -cache true \
+            -dns \
+            -cache \
             -data-dir ./data
           
       - name: Run stats
         run: |
           echo "📊 Aggregation Statistics:"
-          ~/go/bin/magpie --stats --data-dir ./data || true
+          # The stats command might need the data directory
+          ~/go/bin/magpie --stats --data-dir ./data || echo "Stats not available yet"
           
       - name: Generate summary
         run: |
-          TOTAL=$(wc -l < blocklist.txt 2>/dev/null || echo "0")
+          if [ -f blocklist.txt ]; then
+            TOTAL=$(wc -l < blocklist.txt)
+          else
+            TOTAL=0
+          fi
           echo "## Magpie DNSBL Update" > summary.md
           echo "" >> summary.md
           echo "- **Generated:** $(date -u)" >> summary.md
@@ -71,8 +76,10 @@ jobs:
             data/stats.json
             summary.md
           retention-days: 7
+          if-no-files-found: warn
           
       - name: Create Release
+        if: success() && hashFiles('blocklist.txt') != ''
         uses: softprops/action-gh-release@v2
         with:
           tag_name: daily-${{ github.run_number }}
