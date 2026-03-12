@@ -4,11 +4,9 @@ I take no credit for any of this work whatsoever.
 
 This repo runs **[PigeonSec's](https://github.com/pigeonsec)** amazing tool **[Magpie](https://github.com/pigeonsec/magpie)** to generate DNS blocklists.
 
-Magpie
+Quoting from their GitHub;
 
-High-performance blocklist aggregator with smart filtering and DNS validation
-
-Magpie is a high-performance blocklist aggregator that fetches, validates, and combines domain blocklists from multiple sources. Built in pure Go with a beautiful terminal UI powered by Bubble Tea, it's optimized for speed, reliability, and user experience.
+"Magpie is a high-performance blocklist aggregator that fetches, validates, and combines domain blocklists from multiple sources. Built in pure Go with a beautiful terminal UI powered by Bubble Tea, it's optimized for speed, reliability, and user experience."
 
 Key Features:
 
@@ -21,7 +19,7 @@ Key Features:
     🤖 Cronjob ready silent mode for automated scheduled runs
 
 
-This repo is only public because GitHub charges for private repo minutes after March 2026..
+## This repo is only public because GitHub charges for private repo minutes after March 2026..
 
 ## What this does
 
