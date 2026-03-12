@@ -2,19 +2,20 @@ name: Generate DNSBL with Magpie
 
 on:
   schedule:
-    - cron: '0 2 * * *'  # Runs daily at 2 AM UTC
+    - cron: '0 20 * * *'  # Runs daily at 8 PM UTC
   workflow_dispatch:      # Allows manual trigger from GitHub UI
 
 jobs:
   aggregate:
     runs-on: ubuntu-latest
-    timeout-minutes: 30   # Safety timeout
+    timeout-minutes: 180   # Increased timeout for 500 workers
     
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
+          token: ${{ secrets.GITHUB_TOKEN }}
           
       - name: Setup Go
         uses: actions/setup-go@v5
@@ -38,12 +39,12 @@ jobs:
           # Create data directory for stats
           mkdir -p data
           
-          # Run with recommended settings from docs
+          # Run with MAXIMUM WORKERS for speed
           ~/go/bin/magpie \
             -source sources.txt \
             -output blocklist.txt \
-            -workers 100 \
-            -fetch-workers 5 \
+            -workers 500 \
+            -fetch-workers 10 \
             -dns \
             -cache \
             -data-dir ./data
@@ -51,7 +52,6 @@ jobs:
       - name: Run stats
         run: |
           echo "📊 Aggregation Statistics:"
-          # The stats command might need the data directory
           ~/go/bin/magpie --stats --data-dir ./data || echo "Stats not available yet"
           
       - name: Generate summary
@@ -66,6 +66,28 @@ jobs:
           echo "- **Generated:** $(date -u)" >> summary.md
           echo "- **Total domains:** $TOTAL" >> summary.md
           echo "- **Sources:** $(grep -v '^#' sources.txt | grep -v '^$' | wc -l)" >> summary.md
+          
+      - name: Commit blocklist.txt to repo
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Check if file exists and has changes
+          if [ -f blocklist.txt ]; then
+            # Add to repo
+            git add blocklist.txt
+            git add data/stats.json || true
+            
+            # Commit if there are changes
+            if git diff --staged --quiet; then
+              echo "No changes to commit"
+            else
+              git commit -m "🤖 Auto-update blocklist [$(date +%Y-%m-%d)]"
+              git push
+            fi
+          else
+            echo "blocklist.txt not found, skipping commit"
+          fi
           
       - name: Upload artifact
         uses: actions/upload-artifact@v4
