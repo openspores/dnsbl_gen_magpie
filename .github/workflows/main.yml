@@ -8,6 +8,10 @@ on:
 jobs:
   aggregate:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write      # Grants write access for commits and releases
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true  # Opt into Node.js 24
     timeout-minutes: 180   # Increased timeout for 500 workers
     
     steps:
@@ -16,6 +20,14 @@ jobs:
         with:
           fetch-depth: 1
           token: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: Create go.sum for cache
+        run: |
+          # Create empty go.sum if it doesn't exist to enable caching
+          if [ ! -f go.sum ]; then
+            touch go.sum
+            echo "Created empty go.sum for cache"
+          fi
           
       - name: Setup Go
         uses: actions/setup-go@v5
