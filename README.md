@@ -38,4 +38,8 @@ Key Features:
 
 This repo inherits whatever license Magpie uses, which inherits whatever license Kestrel uses. The chain of custody ends at: free to use with attribution required. Specifically: "Include 'Powered by Kestrel by PigeonSec' or link to this repo."
 
-Consider the above sentence and all the links in this README my legal obligation fulfilled. Lawyers may now stand down.
+Consider the above sentence and all the links in this README my legal obligation fulfilled.
+
+Further consider this README my binding affidavit, sworn under penalty of perjury, that I have provided attribution to the best of my ability while operating a router and drinking heavily (coffee). So help me ISC. Lawyers may now stand down, forthwith posthaste and the like 👨‍⚖️.
+
+Legal disclaimer: I credited the people. That's it. That's the license.
