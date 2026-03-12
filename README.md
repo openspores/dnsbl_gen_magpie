@@ -20,3 +20,7 @@ It's public because GitHub charges for private repo minutes after March 2026.
 - ⭐ **[PigeonSec](http://pigeonsec.com)** ⭐ – Visit PigeonSec's website
 - ⭐ **The blocklist maintainers** ⭐ listed in [`sources.txt`](sources.txt) – you do all the real work. We owe you all a massive debt of gratitude. 🙏🙏
 - 🤡 **Microslop** 🤡 – for free GitHub Actions minutes.
+
+## License
+
+Magpie is AGPL-3.0 licensed. See the [LICENSE](LICENSE) file for details.
