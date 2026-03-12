@@ -72,3 +72,5 @@ https://codeberg.org/celenity/BadBlock/raw/branch/pages/wildcards-star/nsa-block
 https://raw.githubusercontent.com/badmojr/1Hosts/refs/heads/master/Xtra/domains.txt
 https://divested.dev/hosts-domains
 https://www.github.developerdan.com/hosts/lists/ads-and-tracking-extended.txt
+https://cdn.jsdelivr.net/gh/nextdns/blocklists@latest/ads.txt
+https://winhelp2002.mvps.org/hosts.txt
