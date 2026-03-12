@@ -36,4 +36,6 @@ Key Features:
 
 ## License
 
-Magpie is AGPL-3.0 licensed. See the [LICENSE](LICENSE) file for details.
+This repo inherits whatever license Magpie uses, which inherits whatever license Kestrel uses. The chain of custody ends at: free to use with attribution required. Specifically: "Include 'Powered by Kestrel by PigeonSec' or link to this repo."
+
+Consider the above sentence and all the links in this README my legal obligation fulfilled. Lawyers may now stand down.
