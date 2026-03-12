@@ -1,5 +1,7 @@
 # DNSBL Generator
 
+I take no credit for any of this work whatsoever.
+
 This repo runs **[PigeonSec's](https://github.com/pigeonsec)** amazing tool **[Magpie](https://github.com/pigeonsec/magpie)** to generate DNS blocklists.
 
 PigeonSec Magpie is a high-performance blocklist aggregator that fetches, deduplicates, validates, and combines domains from multiple sources ..and looks REeal good while doing it.
