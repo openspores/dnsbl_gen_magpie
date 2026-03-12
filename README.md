@@ -11,7 +11,7 @@ It's public because GitHub charges for private repo minutes after March 2026.
 ## What this does
 
 - Runs Magpie daily on GitHub's free servers (Thanks Microslop! 😃)
-- Creates a blocklist release for my router to download
+- Creates a blocklist of domains that I then convert to an rpz file for Bind9 using another script.
 
 ## All credit goes to:
 
