@@ -1,4 +1,4 @@
-name: Generate DNSBL with Magpie (10 Runner Matrix)
+name: Generate DNSBL with Magpie (5 Runner Matrix - 40 workers)
 
 on:
   workflow_dispatch:      # Allows manual trigger from GitHub UI only
@@ -8,7 +8,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # Split sources into 10 groups using simple arithmetic
+  # Split sources into 5 groups using simple arithmetic
   split-sources:
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -18,11 +18,6 @@ jobs:
       group3: ${{ steps.set-groups.outputs.group3 }}
       group4: ${{ steps.set-groups.outputs.group4 }}
       group5: ${{ steps.set-groups.outputs.group5 }}
-      group6: ${{ steps.set-groups.outputs.group6 }}
-      group7: ${{ steps.set-groups.outputs.group7 }}
-      group8: ${{ steps.set-groups.outputs.group8 }}
-      group9: ${{ steps.set-groups.outputs.group9 }}
-      group10: ${{ steps.set-groups.outputs.group10 }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -30,7 +25,7 @@ jobs:
           fetch-depth: 1
           token: ${{ secrets.GITHUB_TOKEN }}
         
-      - name: Calculate group sizes for 10 runners
+      - name: Calculate group sizes for 5 runners
         id: set-groups
         run: |
           # Get clean sources (skip comments and empty lines)
@@ -38,16 +33,16 @@ jobs:
           TOTAL=$(wc -l < clean_sources.txt)
           echo "Total sources: $TOTAL"
           
-          # HARDCODE 10 groups - don't rely on variable
-          BASE_SIZE=$(( TOTAL / 10 ))
-          REMAINDER=$(( TOTAL % 10 ))
+          # HARDCODE 5 groups
+          BASE_SIZE=$(( TOTAL / 5 ))
+          REMAINDER=$(( TOTAL % 5 ))
           
           echo "Base size per group: $BASE_SIZE"
           echo "Remainder: $REMAINDER (first $REMAINDER groups get +1)"
           
-          # Calculate start and end for exactly 10 groups
+          # Calculate start and end for exactly 5 groups
           START=1
-          for i in $(seq 1 10); do
+          for i in $(seq 1 5); do
             # Groups 1-REMAINDER get one extra source
             if [ $i -le $REMAINDER ]; then
               GROUP_SIZE=$(( BASE_SIZE + 1 ))
@@ -70,10 +65,10 @@ jobs:
             echo "⚠️ Warning: Source assignment mismatch! Assigned up to line $EXPECTED_END, but TOTAL is $TOTAL"
             exit 1
           else
-            echo "✅ Successfully assigned all $TOTAL sources to 10 groups"
+            echo "✅ Successfully assigned all $TOTAL sources to 5 groups"
           fi
 
-  # Process each group with OPTIMIZED workers (20 each - to avoid rate limiting)
+  # Process each group with TEST workers (40 each - 200 total)
   process-group:
     needs: split-sources
     runs-on: ubuntu-latest
@@ -90,13 +85,8 @@ jobs:
           - ${{ fromJson(needs.split-sources.outputs.group3) }}
           - ${{ fromJson(needs.split-sources.outputs.group4) }}
           - ${{ fromJson(needs.split-sources.outputs.group5) }}
-          - ${{ fromJson(needs.split-sources.outputs.group6) }}
-          - ${{ fromJson(needs.split-sources.outputs.group7) }}
-          - ${{ fromJson(needs.split-sources.outputs.group8) }}
-          - ${{ fromJson(needs.split-sources.outputs.group9) }}
-          - ${{ fromJson(needs.split-sources.outputs.group10) }}
       fail-fast: false
-      # 10 concurrent runners - well within GitHub's 20 job limit
+      # 5 concurrent runners
     
     steps:
       - name: Parse group info
@@ -162,7 +152,7 @@ jobs:
           IP=$(curl -s --connect-timeout 5 https://api.ipify.org || echo "unavailable")
           echo "   Public IP: $IP"
           echo "   Hostname: $(hostname)"
-          echo "   Worker count: 20"
+          echo "   Worker count: 40"
           echo "   Fetcher count: 5"
           echo "   Sources in group: $(wc -l < group_${{ steps.parse.outputs.group_num }}.txt)"
           
@@ -180,11 +170,11 @@ jobs:
             echo "⚠️ Group ${{ steps.parse.outputs.group_num }} has no sources, creating empty output"
             touch blocklist_part_${{ steps.parse.outputs.group_num }}.txt
           else
-            # Run with OPTIMIZED WORKERS (20) to avoid rate limiting
+            # Run with TEST WORKERS (40) to test GitHub limit hypothesis
             ~/go/bin/magpie \
               -source group_${{ steps.parse.outputs.group_num }}.txt \
               -output blocklist_part_${{ steps.parse.outputs.group_num }}.txt \
-              -workers 20 \
+              -workers 40 \
               -fetch-workers 5 \
               -dns \
               -cache \
@@ -242,7 +232,7 @@ jobs:
           
           # Show sizes before dedup
           TOTAL_RAW=0
-          for i in {1..10}; do
+          for i in {1..5}; do
             if [ -f "./parts/blocklist_part_${i}.txt" ]; then
               COUNT=$(wc -l < "./parts/blocklist_part_${i}.txt")
               echo "  Part $i: $COUNT domains"
@@ -323,7 +313,7 @@ jobs:
           echo "- **Sources:** $(grep -v '^#' sources.txt | grep -v '^$' | wc -l)" >> summary.md
           echo "- **RPZ file:** a.rpz (with ${TOTAL} entries)" >> summary.md
           echo "" >> summary.md
-          echo "*Processed with 10 parallel runners (20 workers, 5 fetchers each)*" >> summary.md
+          echo "*Processed with 5 parallel runners (40 workers, 5 fetchers each)*" >> summary.md
           
       - name: Commit files to repo
         run: |
@@ -344,7 +334,7 @@ jobs:
             if git diff --staged --quiet; then
               echo "No changes to commit"
             else
-              git commit -m "🤖 Auto-update blocklists [$(date +%Y-%m-%d)] (10-runner matrix)"
+              git commit -m "🤖 Auto-update blocklists [$(date +%Y-%m-%d)] (5-runner, 40-worker test)"
               git push
             fi
           else
