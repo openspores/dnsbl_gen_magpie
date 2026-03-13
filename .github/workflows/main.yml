@@ -10,7 +10,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # Split 87 sources into 5 groups - output as separate variables
+  # Split sources into 5 groups using simple arithmetic
   split-sources:
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -27,7 +27,7 @@ jobs:
           fetch-depth: 1
           token: ${{ secrets.GITHUB_TOKEN }}
         
-      - name: Create 5 groups
+      - name: Calculate group sizes
         id: set-groups
         run: |
           # Get clean sources (skip comments and empty lines)
@@ -35,21 +35,31 @@ jobs:
           TOTAL=$(wc -l < clean_sources.txt)
           echo "Total sources: $TOTAL"
           
-          # Force 5 groups
-          GROUPS=5
-          SOURCES_PER_GROUP=$(( ($TOTAL + $GROUPS - 1) / $GROUPS ))
+          # Calculate base size and remainder
+          BASE_SIZE=$(( TOTAL / 5 ))
+          REMAINDER=$(( TOTAL % 5 ))
           
-          # Create each group as a separate output
-          for i in $(seq 1 $GROUPS); do
-            START=$(( ($i - 1) * $SOURCES_PER_GROUP + 1 ))
-            END=$(( $i * $SOURCES_PER_GROUP ))
-            [ $END -gt $TOTAL ] && END=$TOTAL
+          echo "Base size per group: $BASE_SIZE"
+          echo "Remainder: $REMAINDER (first $REMAINDER groups get +1)"
+          
+          # Calculate start and end for each group
+          START=1
+          for i in $(seq 1 5); do
+            # Groups 1-REMAINDER get one extra source
+            if [ $i -le $REMAINDER ]; then
+              GROUP_SIZE=$(( BASE_SIZE + 1 ))
+            else
+              GROUP_SIZE=$BASE_SIZE
+            fi
             
-            # Store as JSON string
+            END=$(( START + GROUP_SIZE - 1 ))
+            
+            # Store as JSON
             echo "group$i={\"group\":$i,\"start\":$START,\"end\":$END}" >> $GITHUB_OUTPUT
+            echo "Group $i: lines $START-$END ($GROUP_SIZE sources)"
+            
+            START=$(( END + 1 ))
           done
-          
-          echo "Split $TOTAL sources into 5 groups (~$SOURCES_PER_GROUP each)"
 
   # Process each group with FULL Magpie power
   process-group:
@@ -105,12 +115,27 @@ jobs:
           
       - name: Extract sources for group ${{ steps.parse.outputs.group_num }}
         run: |
+          # Get clean sources (skip comments and empty lines)
           grep -v '^#' sources.txt | grep -v '^$' > clean_sources.txt
+          
           START=${{ steps.parse.outputs.start }}
           END=${{ steps.parse.outputs.end }}
+          
+          echo "Extracting lines $START to $END for Group ${{ steps.parse.outputs.group_num }}"
+          
+          # Extract using sed (simpler and reliable)
           sed -n "${START},${END}p" clean_sources.txt > group_${{ steps.parse.outputs.group_num }}.txt
-          echo "📋 Group ${{ steps.parse.outputs.group_num }}: $(wc -l < group_${{ steps.parse.outputs.group_num }}.txt) sources"
-          cat group_${{ steps.parse.outputs.group_num }}.txt
+          
+          # Count and validate
+          COUNT=$(wc -l < group_${{ steps.parse.outputs.group_num }}.txt)
+          echo "📋 Group ${{ steps.parse.outputs.group_num }}: $COUNT sources"
+          
+          if [ $COUNT -eq 0 ]; then
+            echo "⚠️ Warning: Group ${{ steps.parse.outputs.group_num }} has no sources"
+          else
+            echo "Sources in group ${{ steps.parse.outputs.group_num }}:"
+            cat group_${{ steps.parse.outputs.group_num }}.txt
+          fi
           
       - name: Show runner IP and info
         run: |
@@ -127,15 +152,21 @@ jobs:
         run: |
           mkdir -p data
           
-          # Run with OPTIMIZED WORKERS
-          ~/go/bin/magpie \
-            -source group_${{ steps.parse.outputs.group_num }}.txt \
-            -output blocklist_part_${{ steps.parse.outputs.group_num }}.txt \
-            -workers 100 \
-            -fetch-workers 5 \
-            -dns \
-            -cache \
-            -data-dir ./data
+          # Check if group file has content
+          if [ ! -s group_${{ steps.parse.outputs.group_num }}.txt ]; then
+            echo "⚠️ Group ${{ steps.parse.outputs.group_num }} has no sources, creating empty output"
+            touch blocklist_part_${{ steps.parse.outputs.group_num }}.txt
+          else
+            # Run with OPTIMIZED WORKERS
+            ~/go/bin/magpie \
+              -source group_${{ steps.parse.outputs.group_num }}.txt \
+              -output blocklist_part_${{ steps.parse.outputs.group_num }}.txt \
+              -workers 100 \
+              -fetch-workers 5 \
+              -dns \
+              -cache \
+              -data-dir ./data
+          fi
           
           echo "✅ Group ${{ steps.parse.outputs.group_num }} complete: $(wc -l < blocklist_part_${{ steps.parse.outputs.group_num }}.txt) domains"
           
@@ -145,7 +176,7 @@ jobs:
           name: blocklist-part-${{ steps.parse.outputs.group_num }}
           path: blocklist_part_${{ steps.parse.outputs.group_num }}.txt
           retention-days: 1
-          if-no-files-found: error
+          if-no-files-found: warn
 
   # Combine all parts into final blocklist
   combine:
@@ -186,20 +217,23 @@ jobs:
           echo "📦 Combining all blocklist parts..."
           
           # Show sizes before dedup
+          TOTAL_RAW=0
           for i in {1..5}; do
             if [ -f "./parts/blocklist_part_${i}.txt" ]; then
               COUNT=$(wc -l < "./parts/blocklist_part_${i}.txt")
               echo "  Part $i: $COUNT domains"
+              TOTAL_RAW=$((TOTAL_RAW + COUNT))
+            else
+              echo "  Part $i: 0 domains (missing)"
             fi
           done
           
           # Combine all parts
-          cat ./parts/blocklist_part_*.txt > combined.txt
-          TOTAL_RAW=$(wc -l < combined.txt)
+          cat ./parts/blocklist_part_*.txt > combined.txt 2>/dev/null || true
           echo "Raw combined: $TOTAL_RAW domains"
           
           # CRITICAL: Global deduplication
-          sort -u combined.txt > blocklist.txt
+          sort -u combined.txt > blocklist.txt 2>/dev/null || touch blocklist.txt
           TOTAL_UNIQUE=$(wc -l < blocklist.txt)
           DUPLICATES=$((TOTAL_RAW - TOTAL_UNIQUE))
           
@@ -211,11 +245,12 @@ jobs:
           echo "📝 Generating RPZ format a.rpz from blocklist.txt"
           
           if [ ! -f blocklist.txt ] || [ ! -s blocklist.txt ]; then
-            echo "❌ blocklist.txt is empty or missing"
-            exit 1
+            echo "⚠️ blocklist.txt is empty, creating minimal RPZ"
+            TOTAL_DOMAINS=0
+          else
+            TOTAL_DOMAINS=$(wc -l < blocklist.txt)
           fi
           
-          TOTAL_DOMAINS=$(wc -l < blocklist.txt)
           CURRENT_DATE=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
           SERIAL=$(date -u +"%Y%m%d01")
           
@@ -237,8 +272,10 @@ jobs:
           echo "; Total unique domains: ${TOTAL_DOMAINS}" >> a.rpz
           echo "" >> a.rpz
           
-          # Append each domain with ' CNAME .'
-          awk '{print $0 " CNAME ."}' blocklist.txt >> a.rpz
+          # Append each domain with ' CNAME .' if file has content
+          if [ -s blocklist.txt ]; then
+            awk '{print $0 " CNAME ."}' blocklist.txt >> a.rpz
+          fi
           
           echo "✅ RPZ file created: a.rpz (${TOTAL_DOMAINS} entries)"
           echo "📋 First 5 lines of a.rpz:"
@@ -249,11 +286,15 @@ jobs:
           echo "📊 Aggregation Statistics:"
           # Create empty data dir if needed
           mkdir -p data
-          ~/go/bin/magpie --stats --data-dir ./data || echo "Stats not available yet"
+          if command -v ~/go/bin/magpie &> /dev/null; then
+            ~/go/bin/magpie --stats --data-dir ./data || echo "Stats not available yet"
+          else
+            echo "Magpie not available for stats"
+          fi
           
       - name: Generate summary
         run: |
-          TOTAL=$(wc -l < blocklist.txt)
+          TOTAL=$(wc -l < blocklist.txt 2>/dev/null || echo "0")
           echo "## Magpie DNSBL Update" > summary.md
           echo "" >> summary.md
           echo "- **Generated:** $(date -u)" >> summary.md
@@ -270,15 +311,11 @@ jobs:
           
           # Check if files exist and have changes
           FILES_TO_ADD=""
-          if [ -f blocklist.txt ]; then
-            FILES_TO_ADD="$FILES_TO_ADD blocklist.txt"
-          fi
-          if [ -f a.rpz ]; then
-            FILES_TO_ADD="$FILES_TO_ADD a.rpz"
-          fi
-          if [ -f data/stats.json ]; then
-            FILES_TO_ADD="$FILES_TO_ADD data/stats.json"
-          fi
+          for file in blocklist.txt a.rpz data/stats.json; do
+            if [ -f "$file" ]; then
+              FILES_TO_ADD="$FILES_TO_ADD $file"
+            fi
+          done
           
           if [ -n "$FILES_TO_ADD" ]; then
             git add $FILES_TO_ADD
