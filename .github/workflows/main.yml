@@ -10,12 +10,16 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # Split 87 sources into 5 groups
+  # Split 87 sources into 5 groups - output as separate variables
   split-sources:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     outputs:
-      groups: ${{ steps.set-groups.outputs.groups }}
+      group1: ${{ steps.set-groups.outputs.group1 }}
+      group2: ${{ steps.set-groups.outputs.group2 }}
+      group3: ${{ steps.set-groups.outputs.group3 }}
+      group4: ${{ steps.set-groups.outputs.group4 }}
+      group5: ${{ steps.set-groups.outputs.group5 }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -35,24 +39,19 @@ jobs:
           GROUPS=5
           SOURCES_PER_GROUP=$(( ($TOTAL + $GROUPS - 1) / $GROUPS ))
           
-          # Create a JSON array properly
-          GROUPS_ARRAY=""
+          # Create each group as a separate output
           for i in $(seq 1 $GROUPS); do
             START=$(( ($i - 1) * $SOURCES_PER_GROUP + 1 ))
             END=$(( $i * $SOURCES_PER_GROUP ))
             [ $END -gt $TOTAL ] && END=$TOTAL
             
-            if [ $i -gt 1 ]; then
-              GROUPS_ARRAY="${GROUPS_ARRAY},"
-            fi
-            GROUPS_ARRAY="${GROUPS_ARRAY}{\"group\":$i,\"start\":$START,\"end\":$END}"
+            # Store as JSON string
+            echo "group$i={\"group\":$i,\"start\":$START,\"end\":$END}" >> $GITHUB_OUTPUT
           done
           
-          # Wrap in array brackets
-          echo "groups=[$GROUPS_ARRAY]" >> $GITHUB_OUTPUT
           echo "Split $TOTAL sources into 5 groups (~$SOURCES_PER_GROUP each)"
 
-  # Process each group with FULL Magpie power - ALL 5 RUN SIMULTANEOUSLY
+  # Process each group with FULL Magpie power
   process-group:
     needs: split-sources
     runs-on: ubuntu-latest
@@ -63,9 +62,13 @@ jobs:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     strategy:
       matrix:
-        config: ${{ fromJson(needs.split-sources.outputs.groups) }}
+        config: 
+          - ${{ fromJson(needs.split-sources.outputs.group1) }}
+          - ${{ fromJson(needs.split-sources.outputs.group2) }}
+          - ${{ fromJson(needs.split-sources.outputs.group3) }}
+          - ${{ fromJson(needs.split-sources.outputs.group4) }}
+          - ${{ fromJson(needs.split-sources.outputs.group5) }}
       fail-fast: false
-      # NO max-parallel - all 5 runners run at once for maximum speed
     
     steps:
       - name: Parse group info
