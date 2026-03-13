@@ -1,20 +1,78 @@
-name: Generate DNSBL with Magpie
+name: Generate DNSBL with Magpie (5 Runner Matrix)
 
 on:
   schedule:
     - cron: '0 20 * * *'  # Runs daily at 8 PM UTC
   workflow_dispatch:      # Allows manual trigger from GitHub UI
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  aggregate:
+  # Split 87 sources into 5 groups
+  split-sources:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      groups: ${{ steps.set-groups.outputs.groups }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          token: ${{ secrets.GITHUB_TOKEN }}
+        
+      - name: Create 5 groups
+        id: set-groups
+        run: |
+          # Get clean sources (skip comments and empty lines)
+          grep -v '^#' sources.txt | grep -v '^$' > clean_sources.txt
+          TOTAL=$(wc -l < clean_sources.txt)
+          echo "Total sources: $TOTAL"
+          
+          # Force 5 groups
+          GROUPS=5
+          SOURCES_PER_GROUP=$(( ($TOTAL + $GROUPS - 1) / $GROUPS ))
+          
+          GROUPS_ARRAY="["
+          for i in $(seq 1 $GROUPS); do
+            START=$(( ($i - 1) * $SOURCES_PER_GROUP + 1 ))
+            END=$(( $i * $SOURCES_PER_GROUP ))
+            [ $END -gt $TOTAL ] && END=$TOTAL
+            
+            [ $i -gt 1 ] && GROUPS_ARRAY="${GROUPS_ARRAY},"
+            GROUPS_ARRAY="${GROUPS_ARRAY}\"$i:$START:$END\""
+          done
+          GROUPS_ARRAY="${GROUPS_ARRAY}]"
+          
+          echo "groups=$GROUPS_ARRAY" >> $GITHUB_OUTPUT
+          echo "Split $TOTAL sources into 5 groups (~$SOURCES_PER_GROUP each)"
+
+  # Process each group with FULL Magpie power - ALL 5 RUN SIMULTANEOUSLY
+  process-group:
+    needs: split-sources
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
     permissions:
-      contents: write      # Grants write access for commits and releases
+      contents: write
     env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true  # Opt into Node.js 24
-    timeout-minutes: 180   # Increased timeout for 500 workers
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    strategy:
+      matrix:
+        group: ${{ fromJson(needs.split-sources.outputs.groups) }}
+      fail-fast: false
+      # NO max-parallel - all 5 runners run at once for maximum speed
     
     steps:
+      - name: Parse group info
+        id: parse
+        run: |
+          IFS=':' read -r GROUP_NUM START END <<< "${{ matrix.group }}"
+          echo "group_num=$GROUP_NUM" >> $GITHUB_OUTPUT
+          echo "start=$START" >> $GITHUB_OUTPUT
+          echo "end=$END" >> $GITHUB_OUTPUT
+          
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
@@ -40,45 +98,112 @@ jobs:
           go install github.com/pigeonsec/magpie/cmd/magpie@latest
           echo "✅ Magpie installed"
           
-      - name: Show sources
+      - name: Extract sources for group ${{ steps.parse.outputs.group_num }}
         run: |
-          echo "📋 Using sources from sources.txt:"
-          cat sources.txt
-          echo -e "\n📊 Total sources: $(grep -v '^#' sources.txt | grep -v '^$' | wc -l)"
+          grep -v '^#' sources.txt | grep -v '^$' > clean_sources.txt
+          START=${{ steps.parse.outputs.start }}
+          END=${{ steps.parse.outputs.end }}
+          sed -n "${START},${END}p" clean_sources.txt > group_${{ steps.parse.outputs.group_num }}.txt
+          echo "📋 Group ${{ steps.parse.outputs.group_num }}: $(wc -l < group_${{ steps.parse.outputs.group_num }}.txt) sources"
+          cat group_${{ steps.parse.outputs.group_num }}.txt
           
-      - name: Run Magpie (DNS validation)
+      - name: Show runner IP and info
         run: |
-          # Create data directory for stats
+          echo "🌐 Runner ${{ steps.parse.outputs.group_num }} Information:"
+          # Get IP with fallback if service is unavailable
+          IP=$(curl -s --connect-timeout 5 https://api.ipify.org || echo "unavailable")
+          echo "   Public IP: $IP"
+          echo "   Hostname: $(hostname)"
+          echo "   Worker count: 100"
+          echo "   Fetcher count: 5"
+          echo "   Sources in group: $(wc -l < group_${{ steps.parse.outputs.group_num }}.txt)"
+          
+      - name: Run Magpie for group ${{ steps.parse.outputs.group_num }}
+        run: |
           mkdir -p data
           
-          # Run with MAXIMUM WORKERS for speed
+          # Run with OPTIMIZED WORKERS
           ~/go/bin/magpie \
-            -source sources.txt \
-            -output blocklist.txt \
-            -workers 500 \
-            -fetch-workers 10 \
+            -source group_${{ steps.parse.outputs.group_num }}.txt \
+            -output blocklist_part_${{ steps.parse.outputs.group_num }}.txt \
+            -workers 100 \
+            -fetch-workers 5 \
             -dns \
             -cache \
             -data-dir ./data
+          
+          echo "✅ Group ${{ steps.parse.outputs.group_num }} complete: $(wc -l < blocklist_part_${{ steps.parse.outputs.group_num }}.txt) domains"
+          
+      - name: Upload part artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: blocklist-part-${{ steps.parse.outputs.group_num }}
+          path: blocklist_part_${{ steps.parse.outputs.group_num }}.txt
+          retention-days: 1
+          if-no-files-found: error
+
+  # Combine all parts into final blocklist
+  combine:
+    needs: process-group
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          token: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: Download all parts
+        uses: actions/download-artifact@v4
+        with:
+          path: ./parts
+          pattern: blocklist-part-*
+          merge-multiple: true
+          
+      - name: Combine and deduplicate
+        run: |
+          echo "📦 Combining all blocklist parts..."
+          
+          # Show sizes before dedup
+          for i in {1..5}; do
+            if [ -f "./parts/blocklist_part_${i}.txt" ]; then
+              COUNT=$(wc -l < "./parts/blocklist_part_${i}.txt")
+              echo "  Part $i: $COUNT domains"
+            fi
+          done
+          
+          # Combine all parts
+          cat ./parts/blocklist_part_*.txt > combined.txt
+          TOTAL_RAW=$(wc -l < combined.txt)
+          echo "Raw combined: $TOTAL_RAW domains"
+          
+          # CRITICAL: Global deduplication
+          sort -u combined.txt > blocklist.txt
+          TOTAL_UNIQUE=$(wc -l < blocklist.txt)
+          DUPLICATES=$((TOTAL_RAW - TOTAL_UNIQUE))
+          
+          echo "✅ Final unique domains: $TOTAL_UNIQUE"
+          echo "   Removed $DUPLICATES cross-group duplicates"
           
       - name: Generate RPZ file
         run: |
           echo "📝 Generating RPZ format a.rpz from blocklist.txt"
           
-          # Check if blocklist.txt exists and has content
           if [ ! -f blocklist.txt ] || [ ! -s blocklist.txt ]; then
             echo "❌ blocklist.txt is empty or missing"
             exit 1
           fi
           
-          # Get total unique domains count
           TOTAL_DOMAINS=$(wc -l < blocklist.txt)
           CURRENT_DATE=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
-          
-          # Generate serial in YYYYMMDD01 format
           SERIAL=$(date -u +"%Y%m%d01")
           
-          # Create RPZ header using echo statements (fixes YAML heredoc issue)
+          # Create RPZ header
           echo "\$TTL 300" > a.rpz
           echo "" >> a.rpz
           echo "@ IN SOA router.home.arpa. admin.router.home.arpa. (" >> a.rpz
@@ -100,29 +225,27 @@ jobs:
           awk '{print $0 " CNAME ."}' blocklist.txt >> a.rpz
           
           echo "✅ RPZ file created: a.rpz (${TOTAL_DOMAINS} entries)"
-          
-          # Show first few lines as sample
           echo "📋 First 5 lines of a.rpz:"
           head -15 a.rpz
           
       - name: Run stats
         run: |
           echo "📊 Aggregation Statistics:"
+          # Create empty data dir if needed
+          mkdir -p data
           ~/go/bin/magpie --stats --data-dir ./data || echo "Stats not available yet"
           
       - name: Generate summary
         run: |
-          if [ -f blocklist.txt ]; then
-            TOTAL=$(wc -l < blocklist.txt)
-          else
-            TOTAL=0
-          fi
+          TOTAL=$(wc -l < blocklist.txt)
           echo "## Magpie DNSBL Update" > summary.md
           echo "" >> summary.md
           echo "- **Generated:** $(date -u)" >> summary.md
-          echo "- **Total domains:** $TOTAL" >> summary.md
+          echo "- **Total unique domains:** $TOTAL" >> summary.md
           echo "- **Sources:** $(grep -v '^#' sources.txt | grep -v '^$' | wc -l)" >> summary.md
           echo "- **RPZ file:** a.rpz (with ${TOTAL} entries)" >> summary.md
+          echo "" >> summary.md
+          echo "*Processed with 5 parallel runners (100 workers, 5 fetchers each)*" >> summary.md
           
       - name: Commit files to repo
         run: |
@@ -144,7 +267,6 @@ jobs:
           if [ -n "$FILES_TO_ADD" ]; then
             git add $FILES_TO_ADD
             
-            # Commit if there are changes
             if git diff --staged --quiet; then
               echo "No changes to commit"
             else
