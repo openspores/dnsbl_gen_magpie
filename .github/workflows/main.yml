@@ -30,7 +30,7 @@ jobs:
           fetch-depth: 1
           token: ${{ secrets.GITHUB_TOKEN }}
         
-      - name: Calculate group sizes
+      - name: Calculate group sizes for 10 runners
         id: set-groups
         run: |
           # Get clean sources (skip comments and empty lines)
@@ -38,7 +38,7 @@ jobs:
           TOTAL=$(wc -l < clean_sources.txt)
           echo "Total sources: $TOTAL"
           
-          # Calculate base size and remainder for 10 groups
+          # Calculate base size and remainder for exactly 10 groups
           GROUPS=10
           BASE_SIZE=$(( TOTAL / GROUPS ))
           REMAINDER=$(( TOTAL % GROUPS ))
@@ -46,14 +46,20 @@ jobs:
           echo "Base size per group: $BASE_SIZE"
           echo "Remainder: $REMAINDER (first $REMAINDER groups get +1)"
           
-          # Calculate start and end for each group
+          # Calculate start and end for each group - ONLY 10 GROUPS
           START=1
-          for i in $(seq 1 $GROUPS); do
+          for i in $(seq 1 10); do
             # Groups 1-REMAINDER get one extra source
             if [ $i -le $REMAINDER ]; then
               GROUP_SIZE=$(( BASE_SIZE + 1 ))
             else
               GROUP_SIZE=$BASE_SIZE
+            fi
+            
+            # If GROUP_SIZE is 0, skip this group (shouldn't happen with 87 sources)
+            if [ $GROUP_SIZE -eq 0 ]; then
+              echo "⚠️ Warning: Group $i has 0 sources, skipping"
+              continue
             fi
             
             END=$(( START + GROUP_SIZE - 1 ))
@@ -64,6 +70,11 @@ jobs:
             
             START=$(( END + 1 ))
           done
+          
+          # Verify we used all sources
+          if [ $START -le $TOTAL ]; then
+            echo "⚠️ Warning: Not all sources were assigned! Last START: $START, TOTAL: $TOTAL"
+          fi
 
   # Process each group with OPTIMIZED workers (50 each)
   process-group:
