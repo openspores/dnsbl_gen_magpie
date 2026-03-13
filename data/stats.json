@@ -2,25 +2,69 @@
   "sources": {
     "https://adaway.org/hosts.txt": {
       "url": "https://adaway.org/hosts.txt",
-      "success_count": 1,
+      "success_count": 2,
       "failure_count": 0,
-      "last_success": "2026-03-12T20:28:42.915293132Z",
+      "last_success": "2026-03-13T10:43:35.511527324Z",
       "last_failure": "0001-01-01T00:00:00Z",
       "blacklisted": false,
       "blacklisted_at": "0001-01-01T00:00:00Z",
       "validation_method": "dns",
-      "last_checked": "2026-03-12T20:28:42.915293213Z"
+      "last_checked": "2026-03-13T10:43:35.511527393Z"
+    },
+    "https://badblock.celenity.dev/abp/badblock.txt": {
+      "url": "https://badblock.celenity.dev/abp/badblock.txt",
+      "success_count": 1,
+      "failure_count": 0,
+      "last_success": "2026-03-13T10:43:30.904392105Z",
+      "last_failure": "0001-01-01T00:00:00Z",
+      "blacklisted": false,
+      "blacklisted_at": "0001-01-01T00:00:00Z",
+      "validation_method": "dns",
+      "last_checked": "2026-03-13T10:43:30.904392185Z"
+    },
+    "https://badblock.celenity.dev/abp/doh.txt": {
+      "url": "https://badblock.celenity.dev/abp/doh.txt",
+      "success_count": 1,
+      "failure_count": 0,
+      "last_success": "2026-03-13T10:43:30.908934609Z",
+      "last_failure": "0001-01-01T00:00:00Z",
+      "blacklisted": false,
+      "blacklisted_at": "0001-01-01T00:00:00Z",
+      "validation_method": "dns",
+      "last_checked": "2026-03-13T10:43:30.908934709Z"
+    },
+    "https://badblock.celenity.dev/abp/find-my.txt": {
+      "url": "https://badblock.celenity.dev/abp/find-my.txt",
+      "success_count": 1,
+      "failure_count": 0,
+      "last_success": "2026-03-13T10:43:30.909312607Z",
+      "last_failure": "0001-01-01T00:00:00Z",
+      "blacklisted": false,
+      "blacklisted_at": "0001-01-01T00:00:00Z",
+      "validation_method": "dns",
+      "last_checked": "2026-03-13T10:43:30.909312677Z"
+    },
+    "https://badblock.celenity.dev/abp/nsa-blocklist-ng.txt": {
+      "url": "https://badblock.celenity.dev/abp/nsa-blocklist-ng.txt",
+      "success_count": 1,
+      "failure_count": 0,
+      "last_success": "2026-03-13T10:43:30.90938928Z",
+      "last_failure": "0001-01-01T00:00:00Z",
+      "blacklisted": false,
+      "blacklisted_at": "0001-01-01T00:00:00Z",
+      "validation_method": "dns",
+      "last_checked": "2026-03-13T10:43:30.909389341Z"
     },
     "https://big.oisd.nl/": {
       "url": "https://big.oisd.nl/",
-      "success_count": 1,
+      "success_count": 2,
       "failure_count": 0,
-      "last_success": "2026-03-12T20:28:43.601003197Z",
+      "last_success": "2026-03-13T10:43:36.560492521Z",
       "last_failure": "0001-01-01T00:00:00Z",
       "blacklisted": false,
       "blacklisted_at": "0001-01-01T00:00:00Z",
       "validation_method": "dns",
-      "last_checked": "2026-03-12T20:28:43.601003317Z"
+      "last_checked": "2026-03-13T10:43:36.560492612Z"
     },
     "https://cdn.jsdelivr.net/gh/nextdns/blocklists@latest/ads.txt": {
       "url": "https://cdn.jsdelivr.net/gh/nextdns/blocklists@latest/ads.txt",
@@ -46,69 +90,80 @@
     },
     "https://codeberg.org/hagezi/mirror2/raw/branch/main/dns-blocklists/adblock/doh-vpn-proxy-bypass.txt": {
       "url": "https://codeberg.org/hagezi/mirror2/raw/branch/main/dns-blocklists/adblock/doh-vpn-proxy-bypass.txt",
-      "success_count": 1,
+      "success_count": 2,
       "failure_count": 0,
-      "last_success": "2026-03-12T20:28:41.56783408Z",
+      "last_success": "2026-03-13T10:43:30.651243749Z",
       "last_failure": "0001-01-01T00:00:00Z",
       "blacklisted": false,
       "blacklisted_at": "0001-01-01T00:00:00Z",
       "validation_method": "dns",
-      "last_checked": "2026-03-12T20:28:41.56783417Z"
+      "last_checked": "2026-03-13T10:43:30.651243859Z"
     },
     "https://codeberg.org/hagezi/mirror2/raw/branch/main/dns-blocklists/adblock/dyndns.txt": {
       "url": "https://codeberg.org/hagezi/mirror2/raw/branch/main/dns-blocklists/adblock/dyndns.txt",
-      "success_count": 1,
+      "success_count": 2,
       "failure_count": 0,
-      "last_success": "2026-03-12T20:28:41.761911595Z",
+      "last_success": "2026-03-13T10:43:30.064524788Z",
       "last_failure": "0001-01-01T00:00:00Z",
       "blacklisted": false,
       "blacklisted_at": "0001-01-01T00:00:00Z",
       "validation_method": "dns",
-      "last_checked": "2026-03-12T20:28:41.761911705Z"
+      "last_checked": "2026-03-13T10:43:30.064524878Z"
+    },
+    "https://codeberg.org/hagezi/mirror2/raw/branch/main/dns-blocklists/adblock/spam-tlds-adblock.txt": {
+      "url": "https://codeberg.org/hagezi/mirror2/raw/branch/main/dns-blocklists/adblock/spam-tlds-adblock.txt",
+      "success_count": 1,
+      "failure_count": 0,
+      "last_success": "2026-03-13T10:43:30.063818694Z",
+      "last_failure": "0001-01-01T00:00:00Z",
+      "blacklisted": false,
+      "blacklisted_at": "0001-01-01T00:00:00Z",
+      "validation_method": "dns",
+      "last_checked": "2026-03-13T10:43:30.063818784Z"
     },
     "https://codeberg.org/hagezi/mirror2/raw/branch/main/dns-blocklists/domains/nrd14-8.txt": {
       "url": "https://codeberg.org/hagezi/mirror2/raw/branch/main/dns-blocklists/domains/nrd14-8.txt",
-      "success_count": 1,
+      "success_count": 2,
       "failure_count": 0,
-      "last_success": "2026-03-12T20:28:46.871075615Z",
+      "last_success": "2026-03-13T10:43:37.842460277Z",
       "last_failure": "0001-01-01T00:00:00Z",
       "blacklisted": false,
       "blacklisted_at": "0001-01-01T00:00:00Z",
       "validation_method": "dns",
-      "last_checked": "2026-03-12T20:28:46.871075735Z"
+      "last_checked": "2026-03-13T10:43:37.842460387Z"
     },
     "https://codeberg.org/hagezi/mirror2/raw/branch/main/dns-blocklists/domains/tif.txt": {
       "url": "https://codeberg.org/hagezi/mirror2/raw/branch/main/dns-blocklists/domains/tif.txt",
-      "success_count": 1,
+      "success_count": 2,
       "failure_count": 0,
-      "last_success": "2026-03-12T20:28:42.947189209Z",
+      "last_success": "2026-03-13T10:43:33.693253206Z",
       "last_failure": "0001-01-01T00:00:00Z",
       "blacklisted": false,
       "blacklisted_at": "0001-01-01T00:00:00Z",
       "validation_method": "dns",
-      "last_checked": "2026-03-12T20:28:42.947189339Z"
+      "last_checked": "2026-03-13T10:43:33.693253327Z"
     },
     "https://codeberg.org/hagezi/mirror2/raw/branch/main/dns-blocklists/domains/ultimate.txt": {
       "url": "https://codeberg.org/hagezi/mirror2/raw/branch/main/dns-blocklists/domains/ultimate.txt",
-      "success_count": 1,
+      "success_count": 2,
       "failure_count": 0,
-      "last_success": "2026-03-12T20:28:42.621864584Z",
+      "last_success": "2026-03-13T10:43:33.230808311Z",
       "last_failure": "0001-01-01T00:00:00Z",
       "blacklisted": false,
       "blacklisted_at": "0001-01-01T00:00:00Z",
       "validation_method": "dns",
-      "last_checked": "2026-03-12T20:28:42.621864704Z"
+      "last_checked": "2026-03-13T10:43:33.230808412Z"
     },
     "https://divested.dev/hosts-domains": {
       "url": "https://divested.dev/hosts-domains",
-      "success_count": 1,
+      "success_count": 2,
       "failure_count": 0,
-      "last_success": "2026-03-12T20:28:49.672223837Z",
+      "last_success": "2026-03-13T10:43:42.10278126Z",
       "last_failure": "0001-01-01T00:00:00Z",
       "blacklisted": false,
       "blacklisted_at": "0001-01-01T00:00:00Z",
       "validation_method": "dns",
-      "last_checked": "2026-03-12T20:28:49.672223937Z"
+      "last_checked": "2026-03-13T10:43:42.10278152Z"
     },
     "https://feodotracker.abuse.ch/downloads/ipblocklist_recommended.txt": {
       "url": "https://feodotracker.abuse.ch/downloads/ipblocklist_recommended.txt",
@@ -123,36 +178,47 @@
     },
     "https://gitlab.com/quidsup/notrack-blocklists/raw/master/notrack-malware.txt": {
       "url": "https://gitlab.com/quidsup/notrack-blocklists/raw/master/notrack-malware.txt",
-      "success_count": 1,
+      "success_count": 2,
       "failure_count": 0,
-      "last_success": "2026-03-12T20:28:36.268149902Z",
+      "last_success": "2026-03-13T10:43:33.060230621Z",
       "last_failure": "0001-01-01T00:00:00Z",
       "blacklisted": false,
       "blacklisted_at": "0001-01-01T00:00:00Z",
       "validation_method": "dns",
-      "last_checked": "2026-03-12T20:28:36.268150022Z"
+      "last_checked": "2026-03-13T10:43:33.060230791Z"
     },
     "https://hole.cert.pl/domains/domains.txt": {
       "url": "https://hole.cert.pl/domains/domains.txt",
-      "success_count": 1,
+      "success_count": 2,
       "failure_count": 0,
-      "last_success": "2026-03-12T20:28:37.489285885Z",
+      "last_success": "2026-03-13T10:43:35.100222446Z",
       "last_failure": "0001-01-01T00:00:00Z",
       "blacklisted": false,
       "blacklisted_at": "0001-01-01T00:00:00Z",
       "validation_method": "dns",
-      "last_checked": "2026-03-12T20:28:37.489285955Z"
+      "last_checked": "2026-03-13T10:43:35.100222547Z"
     },
     "https://hostfiles.frogeye.fr/firstparty-trackers-hosts.txt": {
       "url": "https://hostfiles.frogeye.fr/firstparty-trackers-hosts.txt",
-      "success_count": 1,
+      "success_count": 2,
       "failure_count": 0,
-      "last_success": "2026-03-12T20:28:44.130467433Z",
+      "last_success": "2026-03-13T10:43:36.664757672Z",
       "last_failure": "0001-01-01T00:00:00Z",
       "blacklisted": false,
       "blacklisted_at": "0001-01-01T00:00:00Z",
       "validation_method": "dns",
-      "last_checked": "2026-03-12T20:28:44.130467543Z"
+      "last_checked": "2026-03-13T10:43:36.664757792Z"
+    },
+    "https://hosts.tweedge.net/malicious.txt": {
+      "url": "https://hosts.tweedge.net/malicious.txt",
+      "success_count": 1,
+      "failure_count": 0,
+      "last_success": "2026-03-13T10:43:33.44258246Z",
+      "last_failure": "0001-01-01T00:00:00Z",
+      "blacklisted": false,
+      "blacklisted_at": "0001-01-01T00:00:00Z",
+      "validation_method": "dns",
+      "last_checked": "2026-03-13T10:43:33.44258253Z"
     },
     "https://iplists.firehol.org/files/cybercrime.netset": {
       "url": "https://iplists.firehol.org/files/cybercrime.netset",
@@ -178,36 +244,47 @@
     },
     "https://lists.cyberhost.uk/malware.txt": {
       "url": "https://lists.cyberhost.uk/malware.txt",
-      "success_count": 1,
+      "success_count": 2,
       "failure_count": 0,
-      "last_success": "2026-03-12T20:28:38.987053449Z",
+      "last_success": "2026-03-13T10:43:35.14155194Z",
       "last_failure": "0001-01-01T00:00:00Z",
       "blacklisted": false,
       "blacklisted_at": "0001-01-01T00:00:00Z",
       "validation_method": "dns",
-      "last_checked": "2026-03-12T20:28:38.987053559Z"
+      "last_checked": "2026-03-13T10:43:35.141552131Z"
     },
     "https://malware-filter.gitlab.io/malware-filter/phishing-filter-hosts.txt": {
       "url": "https://malware-filter.gitlab.io/malware-filter/phishing-filter-hosts.txt",
-      "success_count": 1,
+      "success_count": 2,
       "failure_count": 0,
-      "last_success": "2026-03-12T20:28:44.014598699Z",
+      "last_success": "2026-03-13T10:43:35.993068509Z",
       "last_failure": "0001-01-01T00:00:00Z",
       "blacklisted": false,
       "blacklisted_at": "0001-01-01T00:00:00Z",
       "validation_method": "dns",
-      "last_checked": "2026-03-12T20:28:44.014598809Z"
+      "last_checked": "2026-03-13T10:43:35.99306861Z"
+    },
+    "https://mike-trewartha.github.io/Pi-hole-Talos-Threat-Blocklist/talos-threats.list": {
+      "url": "https://mike-trewartha.github.io/Pi-hole-Talos-Threat-Blocklist/talos-threats.list",
+      "success_count": 1,
+      "failure_count": 0,
+      "last_success": "2026-03-13T10:43:33.969596991Z",
+      "last_failure": "0001-01-01T00:00:00Z",
+      "blacklisted": false,
+      "blacklisted_at": "0001-01-01T00:00:00Z",
+      "validation_method": "dns",
+      "last_checked": "2026-03-13T10:43:33.969597061Z"
     },
     "https://openphish.com/feed.txt": {
       "url": "https://openphish.com/feed.txt",
-      "success_count": 1,
+      "success_count": 2,
       "failure_count": 0,
-      "last_success": "2026-03-12T20:28:36.651832853Z",
+      "last_success": "2026-03-13T10:43:33.734273523Z",
       "last_failure": "0001-01-01T00:00:00Z",
       "blacklisted": false,
       "blacklisted_at": "0001-01-01T00:00:00Z",
       "validation_method": "dns",
-      "last_checked": "2026-03-12T20:28:36.651832933Z"
+      "last_checked": "2026-03-13T10:43:33.734273583Z"
     },
     "https://osint.digitalside.it/Threat-Intel/lists/latestdomains.txt": {
       "url": "https://osint.digitalside.it/Threat-Intel/lists/latestdomains.txt",
@@ -222,36 +299,36 @@
     },
     "https://pgl.yoyo.org/adservers/serverlist.php?hostformat=hosts\u0026showintro=0\u0026mimetype=plaintext": {
       "url": "https://pgl.yoyo.org/adservers/serverlist.php?hostformat=hosts\u0026showintro=0\u0026mimetype=plaintext",
-      "success_count": 1,
+      "success_count": 2,
       "failure_count": 0,
-      "last_success": "2026-03-12T20:28:44.316264189Z",
+      "last_success": "2026-03-13T10:43:36.266136653Z",
       "last_failure": "0001-01-01T00:00:00Z",
       "blacklisted": false,
       "blacklisted_at": "0001-01-01T00:00:00Z",
       "validation_method": "dns",
-      "last_checked": "2026-03-12T20:28:44.316264289Z"
+      "last_checked": "2026-03-13T10:43:36.266136743Z"
     },
     "https://phishing.army/download/phishing_army_blocklist_extended.txt": {
       "url": "https://phishing.army/download/phishing_army_blocklist_extended.txt",
-      "success_count": 1,
+      "success_count": 2,
       "failure_count": 0,
-      "last_success": "2026-03-12T20:28:44.408436895Z",
+      "last_success": "2026-03-13T10:43:36.199123603Z",
       "last_failure": "0001-01-01T00:00:00Z",
       "blacklisted": false,
       "blacklisted_at": "0001-01-01T00:00:00Z",
       "validation_method": "dns",
-      "last_checked": "2026-03-12T20:28:44.408437005Z"
+      "last_checked": "2026-03-13T10:43:36.199123724Z"
     },
     "https://raw.githubusercontent.com/AssoEchap/stalkerware-indicators/master/generated/hosts": {
       "url": "https://raw.githubusercontent.com/AssoEchap/stalkerware-indicators/master/generated/hosts",
-      "success_count": 1,
+      "success_count": 2,
       "failure_count": 0,
-      "last_success": "2026-03-12T20:28:36.791840086Z",
+      "last_success": "2026-03-13T10:43:33.789899891Z",
       "last_failure": "0001-01-01T00:00:00Z",
       "blacklisted": false,
       "blacklisted_at": "0001-01-01T00:00:00Z",
       "validation_method": "dns",
-      "last_checked": "2026-03-12T20:28:36.791840197Z"
+      "last_checked": "2026-03-13T10:43:33.789899971Z"
     },
     "https://raw.githubusercontent.com/Cisco-Talos/IOCs/main/talos_domains_last_12_months.txt": {
       "url": "https://raw.githubusercontent.com/Cisco-Talos/IOCs/main/talos_domains_last_12_months.txt",
@@ -275,49 +352,82 @@
       "validation_method": "dns",
       "last_checked": "2026-03-12T20:28:36.259768456Z"
     },
-    "https://raw.githubusercontent.com/FadeMind/hosts.extras/master/UncheckyAds/hosts": {
-      "url": "https://raw.githubusercontent.com/FadeMind/hosts.extras/master/UncheckyAds/hosts",
+    "https://raw.githubusercontent.com/DandelionSprout/adfilt/refs/heads/master/Alternate%20versions%20Anti-Malware%20List/AntiMalwareDomains.txt": {
+      "url": "https://raw.githubusercontent.com/DandelionSprout/adfilt/refs/heads/master/Alternate%20versions%20Anti-Malware%20List/AntiMalwareDomains.txt",
       "success_count": 1,
       "failure_count": 0,
-      "last_success": "2026-03-12T20:28:43.131948145Z",
+      "last_success": "2026-03-13T10:43:29.7955029Z",
       "last_failure": "0001-01-01T00:00:00Z",
       "blacklisted": false,
       "blacklisted_at": "0001-01-01T00:00:00Z",
       "validation_method": "dns",
-      "last_checked": "2026-03-12T20:28:43.131948215Z"
+      "last_checked": "2026-03-13T10:43:29.79550301Z"
+    },
+    "https://raw.githubusercontent.com/DandelionSprout/adfilt/refs/heads/master/Other%20domains%20versions/BrowseWebsitesWithoutLoggingInDomains.txt": {
+      "url": "https://raw.githubusercontent.com/DandelionSprout/adfilt/refs/heads/master/Other%20domains%20versions/BrowseWebsitesWithoutLoggingInDomains.txt",
+      "success_count": 1,
+      "failure_count": 0,
+      "last_success": "2026-03-13T10:43:29.610390168Z",
+      "last_failure": "0001-01-01T00:00:00Z",
+      "blacklisted": false,
+      "blacklisted_at": "0001-01-01T00:00:00Z",
+      "validation_method": "dns",
+      "last_checked": "2026-03-13T10:43:29.610390268Z"
+    },
+    "https://raw.githubusercontent.com/FadeMind/hosts.extras/master/UncheckyAds/hosts": {
+      "url": "https://raw.githubusercontent.com/FadeMind/hosts.extras/master/UncheckyAds/hosts",
+      "success_count": 2,
+      "failure_count": 0,
+      "last_success": "2026-03-13T10:43:31.549089298Z",
+      "last_failure": "0001-01-01T00:00:00Z",
+      "blacklisted": false,
+      "blacklisted_at": "0001-01-01T00:00:00Z",
+      "validation_method": "dns",
+      "last_checked": "2026-03-13T10:43:31.549089398Z"
     },
     "https://raw.githubusercontent.com/FadeMind/hosts.extras/master/add.2o7Net/hosts": {
       "url": "https://raw.githubusercontent.com/FadeMind/hosts.extras/master/add.2o7Net/hosts",
-      "success_count": 1,
+      "success_count": 2,
       "failure_count": 0,
-      "last_success": "2026-03-12T20:28:43.36850189Z",
+      "last_success": "2026-03-13T10:43:31.549212238Z",
       "last_failure": "0001-01-01T00:00:00Z",
       "blacklisted": false,
       "blacklisted_at": "0001-01-01T00:00:00Z",
       "validation_method": "dns",
-      "last_checked": "2026-03-12T20:28:43.36850196Z"
+      "last_checked": "2026-03-13T10:43:31.549212308Z"
     },
     "https://raw.githubusercontent.com/FadeMind/hosts.extras/master/add.Risk/hosts": {
       "url": "https://raw.githubusercontent.com/FadeMind/hosts.extras/master/add.Risk/hosts",
-      "success_count": 1,
+      "success_count": 2,
       "failure_count": 0,
-      "last_success": "2026-03-12T20:28:36.783865963Z",
+      "last_success": "2026-03-13T10:43:31.511166075Z",
       "last_failure": "0001-01-01T00:00:00Z",
       "blacklisted": false,
       "blacklisted_at": "0001-01-01T00:00:00Z",
       "validation_method": "dns",
-      "last_checked": "2026-03-12T20:28:36.783866043Z"
+      "last_checked": "2026-03-13T10:43:31.511166196Z"
     },
     "https://raw.githubusercontent.com/FadeMind/hosts.extras/master/add.Spam/hosts": {
       "url": "https://raw.githubusercontent.com/FadeMind/hosts.extras/master/add.Spam/hosts",
-      "success_count": 1,
+      "success_count": 2,
       "failure_count": 0,
-      "last_success": "2026-03-12T20:28:42.138841599Z",
+      "last_success": "2026-03-13T10:43:31.51133923Z",
       "last_failure": "0001-01-01T00:00:00Z",
       "blacklisted": false,
       "blacklisted_at": "0001-01-01T00:00:00Z",
       "validation_method": "dns",
-      "last_checked": "2026-03-12T20:28:42.138841659Z"
+      "last_checked": "2026-03-13T10:43:31.51133929Z"
+    },
+    "https://raw.githubusercontent.com/HexxiumCreations/threat-list/refs/heads/gh-pages/domainsonly": {
+      "url": "https://raw.githubusercontent.com/HexxiumCreations/threat-list/refs/heads/gh-pages/domainsonly",
+      "success_count": 1,
+      "failure_count": 0,
+      "last_success": "2026-03-13T10:43:34.196947152Z",
+      "last_failure": "0001-01-01T00:00:00Z",
+      "blacklisted": false,
+      "blacklisted_at": "0001-01-01T00:00:00Z",
+      "validation_method": "dns",
+      "last_checked": "2026-03-13T10:43:34.196947222Z"
     },
     "https://raw.githubusercontent.com/HexxiumCreations/threatlist/gh-pages/hexxiumthreatlist.txt": {
       "url": "https://raw.githubusercontent.com/HexxiumCreations/threatlist/gh-pages/hexxiumthreatlist.txt",
@@ -332,47 +442,47 @@
     },
     "https://raw.githubusercontent.com/PolishFiltersTeam/KADhosts/master/KADhosts.txt": {
       "url": "https://raw.githubusercontent.com/PolishFiltersTeam/KADhosts/master/KADhosts.txt",
-      "success_count": 1,
+      "success_count": 2,
       "failure_count": 0,
-      "last_success": "2026-03-12T20:28:42.126728639Z",
+      "last_success": "2026-03-13T10:43:35.168150925Z",
       "last_failure": "0001-01-01T00:00:00Z",
       "blacklisted": false,
       "blacklisted_at": "0001-01-01T00:00:00Z",
       "validation_method": "dns",
-      "last_checked": "2026-03-12T20:28:42.126728759Z"
+      "last_checked": "2026-03-13T10:43:35.168151025Z"
     },
     "https://raw.githubusercontent.com/RPiList/specials/master/Blocklisten/Phishing-Angriffe": {
       "url": "https://raw.githubusercontent.com/RPiList/specials/master/Blocklisten/Phishing-Angriffe",
-      "success_count": 1,
+      "success_count": 2,
       "failure_count": 0,
-      "last_success": "2026-03-12T20:28:36.554624821Z",
+      "last_success": "2026-03-13T10:43:33.373162972Z",
       "last_failure": "0001-01-01T00:00:00Z",
       "blacklisted": false,
       "blacklisted_at": "0001-01-01T00:00:00Z",
       "validation_method": "dns",
-      "last_checked": "2026-03-12T20:28:36.554624951Z"
+      "last_checked": "2026-03-13T10:43:33.373163083Z"
     },
     "https://raw.githubusercontent.com/RPiList/specials/master/Blocklisten/malware": {
       "url": "https://raw.githubusercontent.com/RPiList/specials/master/Blocklisten/malware",
-      "success_count": 1,
+      "success_count": 2,
       "failure_count": 0,
-      "last_success": "2026-03-12T20:28:37.109576435Z",
+      "last_success": "2026-03-13T10:43:33.878262023Z",
       "last_failure": "0001-01-01T00:00:00Z",
       "blacklisted": false,
       "blacklisted_at": "0001-01-01T00:00:00Z",
       "validation_method": "dns",
-      "last_checked": "2026-03-12T20:28:37.109576525Z"
+      "last_checked": "2026-03-13T10:43:33.878262324Z"
     },
     "https://raw.githubusercontent.com/RooneyMcNibNug/pihole-stuff/master/SNAFU.txt": {
       "url": "https://raw.githubusercontent.com/RooneyMcNibNug/pihole-stuff/master/SNAFU.txt",
-      "success_count": 1,
+      "success_count": 2,
       "failure_count": 0,
-      "last_success": "2026-03-12T20:28:42.643383186Z",
+      "last_success": "2026-03-13T10:43:35.493113093Z",
       "last_failure": "0001-01-01T00:00:00Z",
       "blacklisted": false,
       "blacklisted_at": "0001-01-01T00:00:00Z",
       "validation_method": "dns",
-      "last_checked": "2026-03-12T20:28:42.643383306Z"
+      "last_checked": "2026-03-13T10:43:35.493113193Z"
     },
     "https://raw.githubusercontent.com/ShadowWhisperer/BlockLists/main/RAW/Malware": {
       "url": "https://raw.githubusercontent.com/ShadowWhisperer/BlockLists/main/RAW/Malware",
@@ -385,148 +495,269 @@
       "blacklisted_at": "0001-01-01T00:00:00Z",
       "last_checked": "2026-03-12T20:28:42.599289254Z"
     },
-    "https://raw.githubusercontent.com/Spam404/lists/master/main-blacklist.txt": {
-      "url": "https://raw.githubusercontent.com/Spam404/lists/master/main-blacklist.txt",
+    "https://raw.githubusercontent.com/ShadowWhisperer/BlockLists/refs/heads/master/RAW/Ads": {
+      "url": "https://raw.githubusercontent.com/ShadowWhisperer/BlockLists/refs/heads/master/RAW/Ads",
       "success_count": 1,
       "failure_count": 0,
-      "last_success": "2026-03-12T20:28:43.739834679Z",
+      "last_success": "2026-03-13T10:43:29.950345642Z",
       "last_failure": "0001-01-01T00:00:00Z",
       "blacklisted": false,
       "blacklisted_at": "0001-01-01T00:00:00Z",
       "validation_method": "dns",
-      "last_checked": "2026-03-12T20:28:43.739834779Z"
+      "last_checked": "2026-03-13T10:43:29.950345732Z"
+    },
+    "https://raw.githubusercontent.com/ShadowWhisperer/BlockLists/refs/heads/master/RAW/Bloat": {
+      "url": "https://raw.githubusercontent.com/ShadowWhisperer/BlockLists/refs/heads/master/RAW/Bloat",
+      "success_count": 1,
+      "failure_count": 0,
+      "last_success": "2026-03-13T10:43:30.021623116Z",
+      "last_failure": "0001-01-01T00:00:00Z",
+      "blacklisted": false,
+      "blacklisted_at": "0001-01-01T00:00:00Z",
+      "validation_method": "dns",
+      "last_checked": "2026-03-13T10:43:30.021623266Z"
+    },
+    "https://raw.githubusercontent.com/ShadowWhisperer/BlockLists/refs/heads/master/RAW/DNS": {
+      "url": "https://raw.githubusercontent.com/ShadowWhisperer/BlockLists/refs/heads/master/RAW/DNS",
+      "success_count": 1,
+      "failure_count": 0,
+      "last_success": "2026-03-13T10:43:30.107164845Z",
+      "last_failure": "0001-01-01T00:00:00Z",
+      "blacklisted": false,
+      "blacklisted_at": "0001-01-01T00:00:00Z",
+      "validation_method": "dns",
+      "last_checked": "2026-03-13T10:43:30.107164966Z"
+    },
+    "https://raw.githubusercontent.com/ShadowWhisperer/BlockLists/refs/heads/master/RAW/Dynamic": {
+      "url": "https://raw.githubusercontent.com/ShadowWhisperer/BlockLists/refs/heads/master/RAW/Dynamic",
+      "success_count": 1,
+      "failure_count": 0,
+      "last_success": "2026-03-13T10:43:30.124761569Z",
+      "last_failure": "0001-01-01T00:00:00Z",
+      "blacklisted": false,
+      "blacklisted_at": "0001-01-01T00:00:00Z",
+      "validation_method": "dns",
+      "last_checked": "2026-03-13T10:43:30.124761659Z"
+    },
+    "https://raw.githubusercontent.com/ShadowWhisperer/BlockLists/refs/heads/master/RAW/Junk": {
+      "url": "https://raw.githubusercontent.com/ShadowWhisperer/BlockLists/refs/heads/master/RAW/Junk",
+      "success_count": 1,
+      "failure_count": 0,
+      "last_success": "2026-03-13T10:43:30.134085149Z",
+      "last_failure": "0001-01-01T00:00:00Z",
+      "blacklisted": false,
+      "blacklisted_at": "0001-01-01T00:00:00Z",
+      "validation_method": "dns",
+      "last_checked": "2026-03-13T10:43:30.134085269Z"
+    },
+    "https://raw.githubusercontent.com/ShadowWhisperer/BlockLists/refs/heads/master/RAW/Malware": {
+      "url": "https://raw.githubusercontent.com/ShadowWhisperer/BlockLists/refs/heads/master/RAW/Malware",
+      "success_count": 1,
+      "failure_count": 0,
+      "last_success": "2026-03-13T10:43:30.311128259Z",
+      "last_failure": "0001-01-01T00:00:00Z",
+      "blacklisted": false,
+      "blacklisted_at": "0001-01-01T00:00:00Z",
+      "validation_method": "dns",
+      "last_checked": "2026-03-13T10:43:30.31112837Z"
+    },
+    "https://raw.githubusercontent.com/ShadowWhisperer/BlockLists/refs/heads/master/RAW/Marketing": {
+      "url": "https://raw.githubusercontent.com/ShadowWhisperer/BlockLists/refs/heads/master/RAW/Marketing",
+      "success_count": 1,
+      "failure_count": 0,
+      "last_success": "2026-03-13T10:43:30.180968403Z",
+      "last_failure": "0001-01-01T00:00:00Z",
+      "blacklisted": false,
+      "blacklisted_at": "0001-01-01T00:00:00Z",
+      "validation_method": "dns",
+      "last_checked": "2026-03-13T10:43:30.180968523Z"
+    },
+    "https://raw.githubusercontent.com/ShadowWhisperer/BlockLists/refs/heads/master/RAW/Microsoft": {
+      "url": "https://raw.githubusercontent.com/ShadowWhisperer/BlockLists/refs/heads/master/RAW/Microsoft",
+      "success_count": 1,
+      "failure_count": 0,
+      "last_success": "2026-03-13T10:43:30.210431035Z",
+      "last_failure": "0001-01-01T00:00:00Z",
+      "blacklisted": false,
+      "blacklisted_at": "0001-01-01T00:00:00Z",
+      "validation_method": "dns",
+      "last_checked": "2026-03-13T10:43:30.210431125Z"
+    },
+    "https://raw.githubusercontent.com/ShadowWhisperer/BlockLists/refs/heads/master/RAW/Risk": {
+      "url": "https://raw.githubusercontent.com/ShadowWhisperer/BlockLists/refs/heads/master/RAW/Risk",
+      "success_count": 1,
+      "failure_count": 0,
+      "last_success": "2026-03-13T10:43:30.267553449Z",
+      "last_failure": "0001-01-01T00:00:00Z",
+      "blacklisted": false,
+      "blacklisted_at": "0001-01-01T00:00:00Z",
+      "validation_method": "dns",
+      "last_checked": "2026-03-13T10:43:30.267553529Z"
+    },
+    "https://raw.githubusercontent.com/ShadowWhisperer/BlockLists/refs/heads/master/RAW/Shock": {
+      "url": "https://raw.githubusercontent.com/ShadowWhisperer/BlockLists/refs/heads/master/RAW/Shock",
+      "success_count": 1,
+      "failure_count": 0,
+      "last_success": "2026-03-13T10:43:30.275763494Z",
+      "last_failure": "0001-01-01T00:00:00Z",
+      "blacklisted": false,
+      "blacklisted_at": "0001-01-01T00:00:00Z",
+      "validation_method": "dns",
+      "last_checked": "2026-03-13T10:43:30.275763564Z"
+    },
+    "https://raw.githubusercontent.com/ShadowWhisperer/BlockLists/refs/heads/master/RAW/Tracking": {
+      "url": "https://raw.githubusercontent.com/ShadowWhisperer/BlockLists/refs/heads/master/RAW/Tracking",
+      "success_count": 1,
+      "failure_count": 0,
+      "last_success": "2026-03-13T10:43:30.783093068Z",
+      "last_failure": "0001-01-01T00:00:00Z",
+      "blacklisted": false,
+      "blacklisted_at": "0001-01-01T00:00:00Z",
+      "validation_method": "dns",
+      "last_checked": "2026-03-13T10:43:30.783093158Z"
+    },
+    "https://raw.githubusercontent.com/Spam404/lists/master/main-blacklist.txt": {
+      "url": "https://raw.githubusercontent.com/Spam404/lists/master/main-blacklist.txt",
+      "success_count": 2,
+      "failure_count": 0,
+      "last_success": "2026-03-13T10:43:35.592543261Z",
+      "last_failure": "0001-01-01T00:00:00Z",
+      "blacklisted": false,
+      "blacklisted_at": "0001-01-01T00:00:00Z",
+      "validation_method": "dns",
+      "last_checked": "2026-03-13T10:43:35.592543341Z"
     },
     "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts": {
       "url": "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts",
-      "success_count": 1,
+      "success_count": 2,
       "failure_count": 0,
-      "last_success": "2026-03-12T20:28:44.526169948Z",
+      "last_success": "2026-03-13T10:43:35.905432797Z",
       "last_failure": "0001-01-01T00:00:00Z",
       "blacklisted": false,
       "blacklisted_at": "0001-01-01T00:00:00Z",
       "validation_method": "dns",
-      "last_checked": "2026-03-12T20:28:44.526170058Z"
+      "last_checked": "2026-03-13T10:43:35.905432897Z"
     },
     "https://raw.githubusercontent.com/Tempest-Solutions-Company/pihole_blocklists/main/all_malicious.txt": {
       "url": "https://raw.githubusercontent.com/Tempest-Solutions-Company/pihole_blocklists/main/all_malicious.txt",
-      "success_count": 1,
+      "success_count": 2,
       "failure_count": 0,
-      "last_success": "2026-03-12T20:28:39.736872782Z",
+      "last_success": "2026-03-13T10:43:38.716433668Z",
       "last_failure": "0001-01-01T00:00:00Z",
       "blacklisted": false,
       "blacklisted_at": "0001-01-01T00:00:00Z",
       "validation_method": "dns",
-      "last_checked": "2026-03-12T20:28:39.736872882Z"
+      "last_checked": "2026-03-13T10:43:38.716433768Z"
     },
     "https://raw.githubusercontent.com/anudeepND/blacklist/master/adservers.txt": {
       "url": "https://raw.githubusercontent.com/anudeepND/blacklist/master/adservers.txt",
-      "success_count": 1,
+      "success_count": 2,
       "failure_count": 0,
-      "last_success": "2026-03-12T20:28:42.95348703Z",
+      "last_success": "2026-03-13T10:43:35.479828519Z",
       "last_failure": "0001-01-01T00:00:00Z",
       "blacklisted": false,
       "blacklisted_at": "0001-01-01T00:00:00Z",
       "validation_method": "dns",
-      "last_checked": "2026-03-12T20:28:42.95348714Z"
+      "last_checked": "2026-03-13T10:43:35.479828629Z"
     },
     "https://raw.githubusercontent.com/badmojr/1Hosts/refs/heads/master/Xtra/domains.txt": {
       "url": "https://raw.githubusercontent.com/badmojr/1Hosts/refs/heads/master/Xtra/domains.txt",
-      "success_count": 1,
+      "success_count": 2,
       "failure_count": 0,
-      "last_success": "2026-03-12T20:28:48.587090882Z",
+      "last_success": "2026-03-13T10:43:40.500882483Z",
       "last_failure": "0001-01-01T00:00:00Z",
       "blacklisted": false,
       "blacklisted_at": "0001-01-01T00:00:00Z",
       "validation_method": "dns",
-      "last_checked": "2026-03-12T20:28:48.587090972Z"
+      "last_checked": "2026-03-13T10:43:40.500882683Z"
     },
     "https://raw.githubusercontent.com/bigdargon/hostsVN/master/hosts": {
       "url": "https://raw.githubusercontent.com/bigdargon/hostsVN/master/hosts",
-      "success_count": 1,
+      "success_count": 2,
       "failure_count": 0,
-      "last_success": "2026-03-12T20:28:43.169604706Z",
+      "last_success": "2026-03-13T10:43:35.516897064Z",
       "last_failure": "0001-01-01T00:00:00Z",
       "blacklisted": false,
       "blacklisted_at": "0001-01-01T00:00:00Z",
       "validation_method": "dns",
-      "last_checked": "2026-03-12T20:28:43.169604806Z"
+      "last_checked": "2026-03-13T10:43:35.516897154Z"
     },
     "https://raw.githubusercontent.com/blocklistproject/Lists/master/fraud.txt": {
       "url": "https://raw.githubusercontent.com/blocklistproject/Lists/master/fraud.txt",
-      "success_count": 1,
+      "success_count": 2,
       "failure_count": 0,
-      "last_success": "2026-03-12T20:28:38.201022955Z",
+      "last_success": "2026-03-13T10:43:30.517766094Z",
       "last_failure": "0001-01-01T00:00:00Z",
       "blacklisted": false,
       "blacklisted_at": "0001-01-01T00:00:00Z",
       "validation_method": "dns",
-      "last_checked": "2026-03-12T20:28:38.201023055Z"
+      "last_checked": "2026-03-13T10:43:30.517766204Z"
     },
     "https://raw.githubusercontent.com/blocklistproject/Lists/master/malware.txt": {
       "url": "https://raw.githubusercontent.com/blocklistproject/Lists/master/malware.txt",
-      "success_count": 1,
+      "success_count": 2,
       "failure_count": 0,
-      "last_success": "2026-03-12T20:28:38.757294963Z",
+      "last_success": "2026-03-13T10:43:31.697768798Z",
       "last_failure": "0001-01-01T00:00:00Z",
       "blacklisted": false,
       "blacklisted_at": "0001-01-01T00:00:00Z",
       "validation_method": "dns",
-      "last_checked": "2026-03-12T20:28:38.757295074Z"
+      "last_checked": "2026-03-13T10:43:31.697769048Z"
     },
     "https://raw.githubusercontent.com/blocklistproject/Lists/master/ransomware.txt": {
       "url": "https://raw.githubusercontent.com/blocklistproject/Lists/master/ransomware.txt",
-      "success_count": 1,
+      "success_count": 2,
       "failure_count": 0,
-      "last_success": "2026-03-12T20:28:37.534236603Z",
+      "last_success": "2026-03-13T10:43:29.768118192Z",
       "last_failure": "0001-01-01T00:00:00Z",
       "blacklisted": false,
       "blacklisted_at": "0001-01-01T00:00:00Z",
       "validation_method": "dns",
-      "last_checked": "2026-03-12T20:28:37.534236703Z"
+      "last_checked": "2026-03-13T10:43:29.768118303Z"
     },
     "https://raw.githubusercontent.com/blocklistproject/Lists/master/scam.txt": {
       "url": "https://raw.githubusercontent.com/blocklistproject/Lists/master/scam.txt",
-      "success_count": 1,
+      "success_count": 2,
       "failure_count": 0,
-      "last_success": "2026-03-12T20:28:38.212161489Z",
+      "last_success": "2026-03-13T10:43:29.860003449Z",
       "last_failure": "0001-01-01T00:00:00Z",
       "blacklisted": false,
       "blacklisted_at": "0001-01-01T00:00:00Z",
       "validation_method": "dns",
-      "last_checked": "2026-03-12T20:28:38.212161589Z"
+      "last_checked": "2026-03-13T10:43:29.860003549Z"
     },
     "https://raw.githubusercontent.com/crazy-max/WindowsSpyBlocker/master/data/hosts/extra.txt": {
       "url": "https://raw.githubusercontent.com/crazy-max/WindowsSpyBlocker/master/data/hosts/extra.txt",
-      "success_count": 1,
+      "success_count": 2,
       "failure_count": 0,
-      "last_success": "2026-03-12T20:28:44.376109301Z",
+      "last_success": "2026-03-13T10:43:35.994179795Z",
       "last_failure": "0001-01-01T00:00:00Z",
       "blacklisted": false,
       "blacklisted_at": "0001-01-01T00:00:00Z",
       "validation_method": "dns",
-      "last_checked": "2026-03-12T20:28:44.376109371Z"
+      "last_checked": "2026-03-13T10:43:35.994179876Z"
     },
     "https://raw.githubusercontent.com/crazy-max/WindowsSpyBlocker/master/data/hosts/spy.txt": {
       "url": "https://raw.githubusercontent.com/crazy-max/WindowsSpyBlocker/master/data/hosts/spy.txt",
-      "success_count": 1,
+      "success_count": 2,
       "failure_count": 0,
-      "last_success": "2026-03-12T20:28:43.384907833Z",
+      "last_success": "2026-03-13T10:43:35.527214257Z",
       "last_failure": "0001-01-01T00:00:00Z",
       "blacklisted": false,
       "blacklisted_at": "0001-01-01T00:00:00Z",
       "validation_method": "dns",
-      "last_checked": "2026-03-12T20:28:43.384907903Z"
+      "last_checked": "2026-03-13T10:43:35.527214327Z"
     },
     "https://raw.githubusercontent.com/elliotwutingfeng/GlobalAntiScamOrg-blocklist/main/global-anti-scam-org-scam-urls-pihole.txt": {
       "url": "https://raw.githubusercontent.com/elliotwutingfeng/GlobalAntiScamOrg-blocklist/main/global-anti-scam-org-scam-urls-pihole.txt",
-      "success_count": 1,
+      "success_count": 2,
       "failure_count": 0,
-      "last_success": "2026-03-12T20:28:39.055438827Z",
+      "last_success": "2026-03-13T10:43:34.233000804Z",
       "last_failure": "0001-01-01T00:00:00Z",
       "blacklisted": false,
       "blacklisted_at": "0001-01-01T00:00:00Z",
       "validation_method": "dns",
-      "last_checked": "2026-03-12T20:28:39.055438917Z"
+      "last_checked": "2026-03-13T10:43:34.233000944Z"
     },
     "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/adblock/tlds.txt": {
       "url": "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/adblock/tlds.txt",
@@ -541,47 +772,47 @@
     },
     "https://raw.githubusercontent.com/hoshsadiq/adblock-nocoin-list/master/hosts.txt": {
       "url": "https://raw.githubusercontent.com/hoshsadiq/adblock-nocoin-list/master/hosts.txt",
-      "success_count": 1,
+      "success_count": 2,
       "failure_count": 0,
-      "last_success": "2026-03-12T20:28:39.08029776Z",
+      "last_success": "2026-03-13T10:43:34.212248489Z",
       "last_failure": "0001-01-01T00:00:00Z",
       "blacklisted": false,
       "blacklisted_at": "0001-01-01T00:00:00Z",
       "validation_method": "dns",
-      "last_checked": "2026-03-12T20:28:39.080297871Z"
+      "last_checked": "2026-03-13T10:43:34.212248559Z"
     },
     "https://raw.githubusercontent.com/jarelllama/Scam-Blocklist/main/lists/wildcard_domains/scams.txt": {
       "url": "https://raw.githubusercontent.com/jarelllama/Scam-Blocklist/main/lists/wildcard_domains/scams.txt",
-      "success_count": 1,
+      "success_count": 2,
       "failure_count": 0,
-      "last_success": "2026-03-12T20:28:45.672426857Z",
+      "last_success": "2026-03-13T10:43:38.007306787Z",
       "last_failure": "0001-01-01T00:00:00Z",
       "blacklisted": false,
       "blacklisted_at": "0001-01-01T00:00:00Z",
       "validation_method": "dns",
-      "last_checked": "2026-03-12T20:28:45.672426957Z"
+      "last_checked": "2026-03-13T10:43:38.007306897Z"
     },
     "https://raw.githubusercontent.com/matomo-org/referrer-spam-blacklist/master/spammers.txt": {
       "url": "https://raw.githubusercontent.com/matomo-org/referrer-spam-blacklist/master/spammers.txt",
-      "success_count": 1,
+      "success_count": 2,
       "failure_count": 0,
-      "last_success": "2026-03-12T20:28:42.183677075Z",
+      "last_success": "2026-03-13T10:43:35.200448072Z",
       "last_failure": "0001-01-01T00:00:00Z",
       "blacklisted": false,
       "blacklisted_at": "0001-01-01T00:00:00Z",
       "validation_method": "dns",
-      "last_checked": "2026-03-12T20:28:42.183677155Z"
+      "last_checked": "2026-03-13T10:43:35.200448142Z"
     },
     "https://raw.githubusercontent.com/mitchellkrogza/Phishing.Database/master/phishing-domains-ACTIVE.txt": {
       "url": "https://raw.githubusercontent.com/mitchellkrogza/Phishing.Database/master/phishing-domains-ACTIVE.txt",
-      "success_count": 1,
+      "success_count": 2,
       "failure_count": 0,
-      "last_success": "2026-03-12T20:28:39.535987822Z",
+      "last_success": "2026-03-13T10:43:34.632930772Z",
       "last_failure": "0001-01-01T00:00:00Z",
       "blacklisted": false,
       "blacklisted_at": "0001-01-01T00:00:00Z",
       "validation_method": "dns",
-      "last_checked": "2026-03-12T20:28:39.535987913Z"
+      "last_checked": "2026-03-13T10:43:34.632930872Z"
     },
     "https://raw.githubusercontent.com/olbat/ut1-blacklists/master/malware/domains": {
       "url": "https://raw.githubusercontent.com/olbat/ut1-blacklists/master/malware/domains",
@@ -605,38 +836,93 @@
       "blacklisted_at": "0001-01-01T00:00:00Z",
       "last_checked": "2026-03-12T20:28:43.945183958Z"
     },
-    "https://raw.githubusercontent.com/stamparm/aux/master/maltrail-malware-domains.txt": {
-      "url": "https://raw.githubusercontent.com/stamparm/aux/master/maltrail-malware-domains.txt",
+    "https://raw.githubusercontent.com/olbat/ut1-blacklists/refs/heads/master/blacklists/doh/domains": {
+      "url": "https://raw.githubusercontent.com/olbat/ut1-blacklists/refs/heads/master/blacklists/doh/domains",
       "success_count": 1,
       "failure_count": 0,
-      "last_success": "2026-03-12T20:28:37.769814863Z",
+      "last_success": "2026-03-13T10:43:29.616418906Z",
       "last_failure": "0001-01-01T00:00:00Z",
       "blacklisted": false,
       "blacklisted_at": "0001-01-01T00:00:00Z",
       "validation_method": "dns",
-      "last_checked": "2026-03-12T20:28:37.769814954Z"
+      "last_checked": "2026-03-13T10:43:29.616418977Z"
+    },
+    "https://raw.githubusercontent.com/olbat/ut1-blacklists/refs/heads/master/blacklists/dynamic-dns/domains": {
+      "url": "https://raw.githubusercontent.com/olbat/ut1-blacklists/refs/heads/master/blacklists/dynamic-dns/domains",
+      "success_count": 1,
+      "failure_count": 0,
+      "last_success": "2026-03-13T10:43:29.612329771Z",
+      "last_failure": "0001-01-01T00:00:00Z",
+      "blacklisted": false,
+      "blacklisted_at": "0001-01-01T00:00:00Z",
+      "validation_method": "dns",
+      "last_checked": "2026-03-13T10:43:29.612329871Z"
+    },
+    "https://raw.githubusercontent.com/olbat/ut1-blacklists/refs/heads/master/blacklists/malware/domains": {
+      "url": "https://raw.githubusercontent.com/olbat/ut1-blacklists/refs/heads/master/blacklists/malware/domains",
+      "success_count": 1,
+      "failure_count": 0,
+      "last_success": "2026-03-13T10:43:30.576796194Z",
+      "last_failure": "0001-01-01T00:00:00Z",
+      "blacklisted": false,
+      "blacklisted_at": "0001-01-01T00:00:00Z",
+      "validation_method": "dns",
+      "last_checked": "2026-03-13T10:43:30.576796304Z"
+    },
+    "https://raw.githubusercontent.com/olbat/ut1-blacklists/refs/heads/master/blacklists/publicite/domains": {
+      "url": "https://raw.githubusercontent.com/olbat/ut1-blacklists/refs/heads/master/blacklists/publicite/domains",
+      "success_count": 1,
+      "failure_count": 0,
+      "last_success": "2026-03-13T10:43:29.71199929Z",
+      "last_failure": "0001-01-01T00:00:00Z",
+      "blacklisted": false,
+      "blacklisted_at": "0001-01-01T00:00:00Z",
+      "validation_method": "dns",
+      "last_checked": "2026-03-13T10:43:29.711999381Z"
+    },
+    "https://raw.githubusercontent.com/olbat/ut1-blacklists/refs/heads/master/blacklists/residential-proxies/domains": {
+      "url": "https://raw.githubusercontent.com/olbat/ut1-blacklists/refs/heads/master/blacklists/residential-proxies/domains",
+      "success_count": 1,
+      "failure_count": 0,
+      "last_success": "2026-03-13T10:43:29.688138049Z",
+      "last_failure": "0001-01-01T00:00:00Z",
+      "blacklisted": false,
+      "blacklisted_at": "0001-01-01T00:00:00Z",
+      "validation_method": "dns",
+      "last_checked": "2026-03-13T10:43:29.688138139Z"
+    },
+    "https://raw.githubusercontent.com/stamparm/aux/master/maltrail-malware-domains.txt": {
+      "url": "https://raw.githubusercontent.com/stamparm/aux/master/maltrail-malware-domains.txt",
+      "success_count": 2,
+      "failure_count": 0,
+      "last_success": "2026-03-13T10:43:34.641769627Z",
+      "last_failure": "0001-01-01T00:00:00Z",
+      "blacklisted": false,
+      "blacklisted_at": "0001-01-01T00:00:00Z",
+      "validation_method": "dns",
+      "last_checked": "2026-03-13T10:43:34.641769737Z"
     },
     "https://raw.githubusercontent.com/stamparm/blackbook/master/blackbook.txt": {
       "url": "https://raw.githubusercontent.com/stamparm/blackbook/master/blackbook.txt",
-      "success_count": 1,
+      "success_count": 2,
       "failure_count": 0,
-      "last_success": "2026-03-12T20:28:37.435285843Z",
+      "last_success": "2026-03-13T10:43:31.685008461Z",
       "last_failure": "0001-01-01T00:00:00Z",
       "blacklisted": false,
       "blacklisted_at": "0001-01-01T00:00:00Z",
       "validation_method": "dns",
-      "last_checked": "2026-03-12T20:28:37.435285953Z"
+      "last_checked": "2026-03-13T10:43:31.685008561Z"
     },
     "https://raw.githubusercontent.com/ttc-cert/TTC-CERT_blocklist_recommended/master/domain_blocklist_recommended.txt": {
       "url": "https://raw.githubusercontent.com/ttc-cert/TTC-CERT_blocklist_recommended/master/domain_blocklist_recommended.txt",
-      "success_count": 1,
+      "success_count": 2,
       "failure_count": 0,
-      "last_success": "2026-03-12T20:28:36.54317777Z",
+      "last_success": "2026-03-13T10:43:33.982297656Z",
       "last_failure": "0001-01-01T00:00:00Z",
       "blacklisted": false,
       "blacklisted_at": "0001-01-01T00:00:00Z",
       "validation_method": "dns",
-      "last_checked": "2026-03-12T20:28:36.54317789Z"
+      "last_checked": "2026-03-13T10:43:33.982297896Z"
     },
     "https://raw.githubusercontent.com/tweedge/emerging-threats-pihole/master/malicious.txt": {
       "url": "https://raw.githubusercontent.com/tweedge/emerging-threats-pihole/master/malicious.txt",
@@ -651,14 +937,14 @@
     },
     "https://someonewhocares.org/hosts/zero/hosts": {
       "url": "https://someonewhocares.org/hosts/zero/hosts",
-      "success_count": 1,
+      "success_count": 2,
       "failure_count": 0,
-      "last_success": "2026-03-12T20:28:42.442390924Z",
+      "last_success": "2026-03-13T10:43:35.444160212Z",
       "last_failure": "0001-01-01T00:00:00Z",
       "blacklisted": false,
       "blacklisted_at": "0001-01-01T00:00:00Z",
       "validation_method": "dns",
-      "last_checked": "2026-03-12T20:28:42.442391054Z"
+      "last_checked": "2026-03-13T10:43:35.444160301Z"
     },
     "https://sslbl.abuse.ch/blacklist/sslipblacklist.txt": {
       "url": "https://sslbl.abuse.ch/blacklist/sslipblacklist.txt",
@@ -673,179 +959,179 @@
     },
     "https://threatfox.abuse.ch/downloads/hostfile/": {
       "url": "https://threatfox.abuse.ch/downloads/hostfile/",
-      "success_count": 1,
+      "success_count": 2,
       "failure_count": 0,
-      "last_success": "2026-03-12T20:28:36.432309974Z",
+      "last_success": "2026-03-13T10:43:33.513959827Z",
       "last_failure": "0001-01-01T00:00:00Z",
       "blacklisted": false,
       "blacklisted_at": "0001-01-01T00:00:00Z",
       "validation_method": "dns",
-      "last_checked": "2026-03-12T20:28:36.432310095Z"
+      "last_checked": "2026-03-13T10:43:33.513959927Z"
     },
     "https://urlhaus.abuse.ch/downloads/hostfile/": {
       "url": "https://urlhaus.abuse.ch/downloads/hostfile/",
-      "success_count": 1,
+      "success_count": 2,
       "failure_count": 0,
-      "last_success": "2026-03-12T20:28:36.264490796Z",
+      "last_success": "2026-03-13T10:43:33.107456308Z",
       "last_failure": "0001-01-01T00:00:00Z",
       "blacklisted": false,
       "blacklisted_at": "0001-01-01T00:00:00Z",
       "validation_method": "dns",
-      "last_checked": "2026-03-12T20:28:36.264490907Z"
+      "last_checked": "2026-03-13T10:43:33.107456388Z"
     },
     "https://v.firebog.net/hosts/AdguardDNS.txt": {
       "url": "https://v.firebog.net/hosts/AdguardDNS.txt",
-      "success_count": 1,
+      "success_count": 2,
       "failure_count": 0,
-      "last_success": "2026-03-12T20:28:43.11870304Z",
+      "last_success": "2026-03-13T10:43:31.964956089Z",
       "last_failure": "0001-01-01T00:00:00Z",
       "blacklisted": false,
       "blacklisted_at": "0001-01-01T00:00:00Z",
       "validation_method": "dns",
-      "last_checked": "2026-03-12T20:28:43.11870314Z"
+      "last_checked": "2026-03-13T10:43:31.964956179Z"
     },
     "https://v.firebog.net/hosts/Admiral.txt": {
       "url": "https://v.firebog.net/hosts/Admiral.txt",
-      "success_count": 1,
+      "success_count": 2,
       "failure_count": 0,
-      "last_success": "2026-03-12T20:28:42.841218156Z",
+      "last_success": "2026-03-13T10:43:31.085658095Z",
       "last_failure": "0001-01-01T00:00:00Z",
       "blacklisted": false,
       "blacklisted_at": "0001-01-01T00:00:00Z",
       "validation_method": "dns",
-      "last_checked": "2026-03-12T20:28:42.841218257Z"
+      "last_checked": "2026-03-13T10:43:31.085658166Z"
     },
     "https://v.firebog.net/hosts/Easylist.txt": {
       "url": "https://v.firebog.net/hosts/Easylist.txt",
-      "success_count": 1,
+      "success_count": 2,
       "failure_count": 0,
-      "last_success": "2026-03-12T20:28:43.090899594Z",
+      "last_success": "2026-03-13T10:43:31.325517878Z",
       "last_failure": "0001-01-01T00:00:00Z",
       "blacklisted": false,
       "blacklisted_at": "0001-01-01T00:00:00Z",
       "validation_method": "dns",
-      "last_checked": "2026-03-12T20:28:43.090899694Z"
+      "last_checked": "2026-03-13T10:43:31.325518019Z"
     },
     "https://v.firebog.net/hosts/Easyprivacy.txt": {
       "url": "https://v.firebog.net/hosts/Easyprivacy.txt",
-      "success_count": 1,
+      "success_count": 2,
       "failure_count": 0,
-      "last_success": "2026-03-12T20:28:43.288418352Z",
+      "last_success": "2026-03-13T10:43:31.400863778Z",
       "last_failure": "0001-01-01T00:00:00Z",
       "blacklisted": false,
       "blacklisted_at": "0001-01-01T00:00:00Z",
       "validation_method": "dns",
-      "last_checked": "2026-03-12T20:28:43.288418452Z"
+      "last_checked": "2026-03-13T10:43:31.400863888Z"
     },
     "https://v.firebog.net/hosts/Prigent-Ads.txt": {
       "url": "https://v.firebog.net/hosts/Prigent-Ads.txt",
-      "success_count": 1,
+      "success_count": 2,
       "failure_count": 0,
-      "last_success": "2026-03-12T20:28:43.381486408Z",
+      "last_success": "2026-03-13T10:43:31.485397238Z",
       "last_failure": "0001-01-01T00:00:00Z",
       "blacklisted": false,
       "blacklisted_at": "0001-01-01T00:00:00Z",
       "validation_method": "dns",
-      "last_checked": "2026-03-12T20:28:43.381486518Z"
+      "last_checked": "2026-03-13T10:43:31.485397309Z"
     },
     "https://v.firebog.net/hosts/Prigent-Crypto.txt": {
       "url": "https://v.firebog.net/hosts/Prigent-Crypto.txt",
-      "success_count": 1,
+      "success_count": 2,
       "failure_count": 0,
-      "last_success": "2026-03-12T20:28:36.771435065Z",
+      "last_success": "2026-03-13T10:43:31.029582419Z",
       "last_failure": "0001-01-01T00:00:00Z",
       "blacklisted": false,
       "blacklisted_at": "0001-01-01T00:00:00Z",
       "validation_method": "dns",
-      "last_checked": "2026-03-12T20:28:36.771435175Z"
+      "last_checked": "2026-03-13T10:43:31.02958256Z"
     },
     "https://v.firebog.net/hosts/Prigent-Malware.txt": {
       "url": "https://v.firebog.net/hosts/Prigent-Malware.txt",
-      "success_count": 1,
+      "success_count": 2,
       "failure_count": 0,
-      "last_success": "2026-03-12T20:28:44.862876761Z",
+      "last_success": "2026-03-13T10:43:32.479996558Z",
       "last_failure": "0001-01-01T00:00:00Z",
       "blacklisted": false,
       "blacklisted_at": "0001-01-01T00:00:00Z",
       "validation_method": "dns",
-      "last_checked": "2026-03-12T20:28:44.862876861Z"
+      "last_checked": "2026-03-13T10:43:32.479996669Z"
     },
     "https://v.firebog.net/hosts/RPiList-Malware.txt": {
       "url": "https://v.firebog.net/hosts/RPiList-Malware.txt",
-      "success_count": 1,
+      "success_count": 2,
       "failure_count": 0,
-      "last_success": "2026-03-12T20:28:45.760109574Z",
+      "last_success": "2026-03-13T10:43:33.492906458Z",
       "last_failure": "0001-01-01T00:00:00Z",
       "blacklisted": false,
       "blacklisted_at": "0001-01-01T00:00:00Z",
       "validation_method": "dns",
-      "last_checked": "2026-03-12T20:28:45.760109694Z"
+      "last_checked": "2026-03-13T10:43:33.492906568Z"
     },
     "https://v.firebog.net/hosts/RPiList-Phishing.txt": {
       "url": "https://v.firebog.net/hosts/RPiList-Phishing.txt",
-      "success_count": 1,
+      "success_count": 2,
       "failure_count": 0,
-      "last_success": "2026-03-12T20:28:44.890976893Z",
+      "last_success": "2026-03-13T10:43:31.990164227Z",
       "last_failure": "0001-01-01T00:00:00Z",
       "blacklisted": false,
       "blacklisted_at": "0001-01-01T00:00:00Z",
       "validation_method": "dns",
-      "last_checked": "2026-03-12T20:28:44.890977013Z"
+      "last_checked": "2026-03-13T10:43:31.990164327Z"
     },
     "https://v.firebog.net/hosts/static/w3kbl.txt": {
       "url": "https://v.firebog.net/hosts/static/w3kbl.txt",
-      "success_count": 1,
+      "success_count": 2,
       "failure_count": 0,
-      "last_success": "2026-03-12T20:28:42.158292763Z",
+      "last_success": "2026-03-13T10:43:30.947305732Z",
       "last_failure": "0001-01-01T00:00:00Z",
       "blacklisted": false,
       "blacklisted_at": "0001-01-01T00:00:00Z",
       "validation_method": "dns",
-      "last_checked": "2026-03-12T20:28:42.158292853Z"
+      "last_checked": "2026-03-13T10:43:30.947305822Z"
     },
     "https://winhelp2002.mvps.org/hosts.txt": {
       "url": "https://winhelp2002.mvps.org/hosts.txt",
-      "success_count": 1,
+      "success_count": 2,
       "failure_count": 0,
-      "last_success": "2026-03-12T20:28:45.865630024Z",
+      "last_success": "2026-03-13T10:43:36.968697733Z",
       "last_failure": "0001-01-01T00:00:00Z",
       "blacklisted": false,
       "blacklisted_at": "0001-01-01T00:00:00Z",
       "validation_method": "dns",
-      "last_checked": "2026-03-12T20:28:45.865630134Z"
+      "last_checked": "2026-03-13T10:43:36.968697853Z"
     },
     "https://www.github.developerdan.com/hosts/lists/ads-and-tracking-extended.txt": {
       "url": "https://www.github.developerdan.com/hosts/lists/ads-and-tracking-extended.txt",
-      "success_count": 1,
+      "success_count": 2,
       "failure_count": 0,
-      "last_success": "2026-03-12T20:28:46.110016818Z",
+      "last_success": "2026-03-13T10:43:38.278469791Z",
       "last_failure": "0001-01-01T00:00:00Z",
       "blacklisted": false,
       "blacklisted_at": "0001-01-01T00:00:00Z",
       "validation_method": "dns",
-      "last_checked": "2026-03-12T20:28:46.110016908Z"
+      "last_checked": "2026-03-13T10:43:38.278469882Z"
     },
     "https://www.usom.gov.tr/url-list.txt": {
       "url": "https://www.usom.gov.tr/url-list.txt",
-      "success_count": 1,
+      "success_count": 2,
       "failure_count": 0,
-      "last_success": "2026-03-12T20:28:48.535744194Z",
+      "last_success": "2026-03-13T10:43:47.479891566Z",
       "last_failure": "0001-01-01T00:00:00Z",
       "blacklisted": false,
       "blacklisted_at": "0001-01-01T00:00:00Z",
       "validation_method": "dns",
-      "last_checked": "2026-03-12T20:28:48.535744304Z"
+      "last_checked": "2026-03-13T10:43:47.479891657Z"
     }
   },
   "global": {
-    "last_run": "2026-03-12T22:44:56.355715003Z",
-    "total_urls_fetched": 66,
-    "total_urls_failed": 10,
-    "total_domains_raw": 12930368,
-    "total_domains_unique": 8820309,
-    "duplicates_removed": 4110059,
-    "valid_domains": 1006660,
-    "invalid_domains": 7813649,
+    "last_run": "2026-03-13T12:59:58.208256769Z",
+    "total_urls_fetched": 87,
+    "total_urls_failed": 0,
+    "total_domains_raw": 13397120,
+    "total_domains_unique": 8853277,
+    "duplicates_removed": 4543843,
+    "valid_domains": 996932,
+    "invalid_domains": 7856345,
     "validation_method": "dns"
   }
 }
