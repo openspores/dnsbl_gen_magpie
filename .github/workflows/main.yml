@@ -35,18 +35,21 @@ jobs:
           GROUPS=5
           SOURCES_PER_GROUP=$(( ($TOTAL + $GROUPS - 1) / $GROUPS ))
           
-          GROUPS_ARRAY="["
+          # Create a JSON array properly
+          GROUPS_ARRAY=""
           for i in $(seq 1 $GROUPS); do
             START=$(( ($i - 1) * $SOURCES_PER_GROUP + 1 ))
             END=$(( $i * $SOURCES_PER_GROUP ))
             [ $END -gt $TOTAL ] && END=$TOTAL
             
-            [ $i -gt 1 ] && GROUPS_ARRAY="${GROUPS_ARRAY},"
-            GROUPS_ARRAY="${GROUPS_ARRAY}\"$i:$START:$END\""
+            if [ $i -gt 1 ]; then
+              GROUPS_ARRAY="${GROUPS_ARRAY},"
+            fi
+            GROUPS_ARRAY="${GROUPS_ARRAY}{\"group\":$i,\"start\":$START,\"end\":$END}"
           done
-          GROUPS_ARRAY="${GROUPS_ARRAY}]"
           
-          echo "groups=$GROUPS_ARRAY" >> $GITHUB_OUTPUT
+          # Wrap in array brackets
+          echo "groups=[$GROUPS_ARRAY]" >> $GITHUB_OUTPUT
           echo "Split $TOTAL sources into 5 groups (~$SOURCES_PER_GROUP each)"
 
   # Process each group with FULL Magpie power - ALL 5 RUN SIMULTANEOUSLY
@@ -60,7 +63,7 @@ jobs:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     strategy:
       matrix:
-        group: ${{ fromJson(needs.split-sources.outputs.groups) }}
+        config: ${{ fromJson(needs.split-sources.outputs.groups) }}
       fail-fast: false
       # NO max-parallel - all 5 runners run at once for maximum speed
     
@@ -68,10 +71,9 @@ jobs:
       - name: Parse group info
         id: parse
         run: |
-          IFS=':' read -r GROUP_NUM START END <<< "${{ matrix.group }}"
-          echo "group_num=$GROUP_NUM" >> $GITHUB_OUTPUT
-          echo "start=$START" >> $GITHUB_OUTPUT
-          echo "end=$END" >> $GITHUB_OUTPUT
+          echo "group_num=${{ matrix.config.group }}" >> $GITHUB_OUTPUT
+          echo "start=${{ matrix.config.start }}" >> $GITHUB_OUTPUT
+          echo "end=${{ matrix.config.end }}" >> $GITHUB_OUTPUT
           
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -157,6 +159,17 @@ jobs:
         with:
           fetch-depth: 1
           token: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: Setup Go for stats
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+          cache: true
+          
+      - name: Install Magpie for stats
+        run: |
+          go install github.com/pigeonsec/magpie/cmd/magpie@latest
+          echo "✅ Magpie installed for stats"
           
       - name: Download all parts
         uses: actions/download-artifact@v4
