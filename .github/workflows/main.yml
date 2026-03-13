@@ -38,15 +38,14 @@ jobs:
           TOTAL=$(wc -l < clean_sources.txt)
           echo "Total sources: $TOTAL"
           
-          # Calculate base size and remainder for exactly 10 groups
-          GROUPS=10
-          BASE_SIZE=$(( TOTAL / GROUPS ))
-          REMAINDER=$(( TOTAL % GROUPS ))
+          # HARDCODE 10 groups - don't rely on variable
+          BASE_SIZE=$(( TOTAL / 10 ))
+          REMAINDER=$(( TOTAL % 10 ))
           
           echo "Base size per group: $BASE_SIZE"
           echo "Remainder: $REMAINDER (first $REMAINDER groups get +1)"
           
-          # Calculate start and end for each group - ONLY 10 GROUPS
+          # Calculate start and end for exactly 10 groups
           START=1
           for i in $(seq 1 10); do
             # Groups 1-REMAINDER get one extra source
@@ -54,12 +53,6 @@ jobs:
               GROUP_SIZE=$(( BASE_SIZE + 1 ))
             else
               GROUP_SIZE=$BASE_SIZE
-            fi
-            
-            # If GROUP_SIZE is 0, skip this group (shouldn't happen with 87 sources)
-            if [ $GROUP_SIZE -eq 0 ]; then
-              echo "⚠️ Warning: Group $i has 0 sources, skipping"
-              continue
             fi
             
             END=$(( START + GROUP_SIZE - 1 ))
@@ -72,8 +65,12 @@ jobs:
           done
           
           # Verify we used all sources
-          if [ $START -le $TOTAL ]; then
-            echo "⚠️ Warning: Not all sources were assigned! Last START: $START, TOTAL: $TOTAL"
+          EXPECTED_END=$(( START - 1 ))
+          if [ $EXPECTED_END -ne $TOTAL ]; then
+            echo "⚠️ Warning: Source assignment mismatch! Assigned up to line $EXPECTED_END, but TOTAL is $TOTAL"
+            exit 1
+          else
+            echo "✅ Successfully assigned all $TOTAL sources to 10 groups"
           fi
 
   # Process each group with OPTIMIZED workers (50 each)
