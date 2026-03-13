@@ -61,6 +61,50 @@ jobs:
             -cache \
             -data-dir ./data
           
+      - name: Generate RPZ file
+        run: |
+          echo "📝 Generating RPZ format a.rpz from blocklist.txt"
+          
+          # Check if blocklist.txt exists and has content
+          if [ ! -f blocklist.txt ] || [ ! -s blocklist.txt ]; then
+            echo "❌ blocklist.txt is empty or missing"
+            exit 1
+          fi
+          
+          # Get total unique domains count
+          TOTAL_DOMAINS=$(wc -l < blocklist.txt)
+          CURRENT_DATE=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          
+          # Generate serial in YYYYMMDD01 format
+          SERIAL=$(date -u +"%Y%m%d01")
+          
+          # Create RPZ header using echo statements (fixes YAML heredoc issue)
+          echo "\$TTL 300" > a.rpz
+          echo "" >> a.rpz
+          echo "@ IN SOA router.home.arpa. admin.router.home.arpa. (" >> a.rpz
+          echo "    ${SERIAL} ; serial number in YYYYMMDD01 format" >> a.rpz
+          echo "    86400 ; Refresh (24h)" >> a.rpz
+          echo "    43200 ; Retry (12h)" >> a.rpz
+          echo "    604800 ; Expire (1 week)" >> a.rpz
+          echo "    86400 ; Negative cache TTL (24h)" >> a.rpz
+          echo ")" >> a.rpz
+          echo "" >> a.rpz
+          echo "; Name Server (NS) record" >> a.rpz
+          echo "@ IN NS router.home.arpa." >> a.rpz
+          echo "" >> a.rpz
+          echo "; Generated: ${CURRENT_DATE}" >> a.rpz
+          echo "; Total unique domains: ${TOTAL_DOMAINS}" >> a.rpz
+          echo "" >> a.rpz
+          
+          # Append each domain with ' CNAME .'
+          awk '{print $0 " CNAME ."}' blocklist.txt >> a.rpz
+          
+          echo "✅ RPZ file created: a.rpz (${TOTAL_DOMAINS} entries)"
+          
+          # Show first few lines as sample
+          echo "📋 First 5 lines of a.rpz:"
+          head -15 a.rpz
+          
       - name: Run stats
         run: |
           echo "📊 Aggregation Statistics:"
@@ -78,27 +122,37 @@ jobs:
           echo "- **Generated:** $(date -u)" >> summary.md
           echo "- **Total domains:** $TOTAL" >> summary.md
           echo "- **Sources:** $(grep -v '^#' sources.txt | grep -v '^$' | wc -l)" >> summary.md
+          echo "- **RPZ file:** a.rpz (with ${TOTAL} entries)" >> summary.md
           
-      - name: Commit blocklist.txt to repo
+      - name: Commit files to repo
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           
-          # Check if file exists and has changes
+          # Check if files exist and have changes
+          FILES_TO_ADD=""
           if [ -f blocklist.txt ]; then
-            # Add to repo
-            git add blocklist.txt
-            git add data/stats.json || true
+            FILES_TO_ADD="$FILES_TO_ADD blocklist.txt"
+          fi
+          if [ -f a.rpz ]; then
+            FILES_TO_ADD="$FILES_TO_ADD a.rpz"
+          fi
+          if [ -f data/stats.json ]; then
+            FILES_TO_ADD="$FILES_TO_ADD data/stats.json"
+          fi
+          
+          if [ -n "$FILES_TO_ADD" ]; then
+            git add $FILES_TO_ADD
             
             # Commit if there are changes
             if git diff --staged --quiet; then
               echo "No changes to commit"
             else
-              git commit -m "🤖 Auto-update blocklist [$(date +%Y-%m-%d)]"
+              git commit -m "🤖 Auto-update blocklists [$(date +%Y-%m-%d)]"
               git push
             fi
           else
-            echo "blocklist.txt not found, skipping commit"
+            echo "No files to commit, skipping commit"
           fi
           
       - name: Upload artifact
@@ -107,13 +161,14 @@ jobs:
           name: dnsbl-output
           path: |
             blocklist.txt
+            a.rpz
             data/stats.json
             summary.md
           retention-days: 7
           if-no-files-found: warn
           
       - name: Create Release
-        if: success() && hashFiles('blocklist.txt') != ''
+        if: success() && (hashFiles('blocklist.txt') != '' || hashFiles('a.rpz') != '')
         uses: softprops/action-gh-release@v2
         with:
           tag_name: daily-${{ github.run_number }}
@@ -121,6 +176,7 @@ jobs:
           body_path: summary.md
           files: |
             blocklist.txt
+            a.rpz
           make_latest: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
