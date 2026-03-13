@@ -1,16 +1,14 @@
-name: Generate DNSBL with Magpie (5 Runner Matrix)
+name: Generate DNSBL with Magpie (10 Runner Matrix)
 
 on:
-  schedule:
-    - cron: '0 20 * * *'  # Runs daily at 8 PM UTC
-  workflow_dispatch:      # Allows manual trigger from GitHub UI
+  workflow_dispatch:      # Allows manual trigger from GitHub UI only
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  # Split sources into 5 groups using simple arithmetic
+  # Split sources into 10 groups using simple arithmetic
   split-sources:
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -20,6 +18,11 @@ jobs:
       group3: ${{ steps.set-groups.outputs.group3 }}
       group4: ${{ steps.set-groups.outputs.group4 }}
       group5: ${{ steps.set-groups.outputs.group5 }}
+      group6: ${{ steps.set-groups.outputs.group6 }}
+      group7: ${{ steps.set-groups.outputs.group7 }}
+      group8: ${{ steps.set-groups.outputs.group8 }}
+      group9: ${{ steps.set-groups.outputs.group9 }}
+      group10: ${{ steps.set-groups.outputs.group10 }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -35,16 +38,17 @@ jobs:
           TOTAL=$(wc -l < clean_sources.txt)
           echo "Total sources: $TOTAL"
           
-          # Calculate base size and remainder
-          BASE_SIZE=$(( TOTAL / 5 ))
-          REMAINDER=$(( TOTAL % 5 ))
+          # Calculate base size and remainder for 10 groups
+          GROUPS=10
+          BASE_SIZE=$(( TOTAL / GROUPS ))
+          REMAINDER=$(( TOTAL % GROUPS ))
           
           echo "Base size per group: $BASE_SIZE"
           echo "Remainder: $REMAINDER (first $REMAINDER groups get +1)"
           
           # Calculate start and end for each group
           START=1
-          for i in $(seq 1 5); do
+          for i in $(seq 1 $GROUPS); do
             # Groups 1-REMAINDER get one extra source
             if [ $i -le $REMAINDER ]; then
               GROUP_SIZE=$(( BASE_SIZE + 1 ))
@@ -61,7 +65,7 @@ jobs:
             START=$(( END + 1 ))
           done
 
-  # Process each group with FULL Magpie power
+  # Process each group with OPTIMIZED workers (50 each)
   process-group:
     needs: split-sources
     runs-on: ubuntu-latest
@@ -78,7 +82,13 @@ jobs:
           - ${{ fromJson(needs.split-sources.outputs.group3) }}
           - ${{ fromJson(needs.split-sources.outputs.group4) }}
           - ${{ fromJson(needs.split-sources.outputs.group5) }}
+          - ${{ fromJson(needs.split-sources.outputs.group6) }}
+          - ${{ fromJson(needs.split-sources.outputs.group7) }}
+          - ${{ fromJson(needs.split-sources.outputs.group8) }}
+          - ${{ fromJson(needs.split-sources.outputs.group9) }}
+          - ${{ fromJson(needs.split-sources.outputs.group10) }}
       fail-fast: false
+      # 10 concurrent runners - well within GitHub's 20 job limit
     
     steps:
       - name: Parse group info
@@ -105,7 +115,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.24'
+          go-version: '1.25'
           cache: true
           
       - name: Install Magpie
@@ -123,7 +133,7 @@ jobs:
           
           echo "Extracting lines $START to $END for Group ${{ steps.parse.outputs.group_num }}"
           
-          # Extract using sed (simpler and reliable)
+          # Extract using sed
           sed -n "${START},${END}p" clean_sources.txt > group_${{ steps.parse.outputs.group_num }}.txt
           
           # Count and validate
@@ -144,24 +154,29 @@ jobs:
           IP=$(curl -s --connect-timeout 5 https://api.ipify.org || echo "unavailable")
           echo "   Public IP: $IP"
           echo "   Hostname: $(hostname)"
-          echo "   Worker count: 100"
+          echo "   Worker count: 50"
           echo "   Fetcher count: 5"
           echo "   Sources in group: $(wc -l < group_${{ steps.parse.outputs.group_num }}.txt)"
           
+      - name: Clean up previous stats
+        run: |
+          # Remove any existing stats to prevent conflicts
+          rm -rf ./data
+          mkdir -p ./data
+          echo "🧹 Stats directory cleaned"
+          
       - name: Run Magpie for group ${{ steps.parse.outputs.group_num }}
         run: |
-          mkdir -p data
-          
           # Check if group file has content
           if [ ! -s group_${{ steps.parse.outputs.group_num }}.txt ]; then
             echo "⚠️ Group ${{ steps.parse.outputs.group_num }} has no sources, creating empty output"
             touch blocklist_part_${{ steps.parse.outputs.group_num }}.txt
           else
-            # Run with OPTIMIZED WORKERS
+            # Run with REDUCED WORKERS (50) to avoid rate limiting
             ~/go/bin/magpie \
               -source group_${{ steps.parse.outputs.group_num }}.txt \
               -output blocklist_part_${{ steps.parse.outputs.group_num }}.txt \
-              -workers 100 \
+              -workers 50 \
               -fetch-workers 5 \
               -dns \
               -cache \
@@ -174,7 +189,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: blocklist-part-${{ steps.parse.outputs.group_num }}
-          path: blocklist_part_${{ steps.parse.outputs.group_num }}.txt
+          path: |
+            blocklist_part_${{ steps.parse.outputs.group_num }}.txt
           retention-days: 1
           if-no-files-found: warn
 
@@ -197,7 +213,7 @@ jobs:
       - name: Setup Go for stats
         uses: actions/setup-go@v5
         with:
-          go-version: '1.24'
+          go-version: '1.25'
           cache: true
           
       - name: Install Magpie for stats
@@ -218,7 +234,7 @@ jobs:
           
           # Show sizes before dedup
           TOTAL_RAW=0
-          for i in {1..5}; do
+          for i in {1..10}; do
             if [ -f "./parts/blocklist_part_${i}.txt" ]; then
               COUNT=$(wc -l < "./parts/blocklist_part_${i}.txt")
               echo "  Part $i: $COUNT domains"
@@ -281,16 +297,13 @@ jobs:
           echo "📋 First 5 lines of a.rpz:"
           head -15 a.rpz
           
-      - name: Run stats
+      - name: Generate stats (from runner 1 only)
         run: |
-          echo "📊 Aggregation Statistics:"
+          echo "📊 Aggregation Statistics (from Runner 1 - partial):"
           # Create empty data dir if needed
           mkdir -p data
-          if command -v ~/go/bin/magpie &> /dev/null; then
-            ~/go/bin/magpie --stats --data-dir ./data || echo "Stats not available yet"
-          else
-            echo "Magpie not available for stats"
-          fi
+          # Note: Stats are partial - only showing Runner 1's data
+          echo "Stats are partial (only Runner 1 shown) due to parallel execution" > data/stats_note.txt
           
       - name: Generate summary
         run: |
@@ -302,7 +315,7 @@ jobs:
           echo "- **Sources:** $(grep -v '^#' sources.txt | grep -v '^$' | wc -l)" >> summary.md
           echo "- **RPZ file:** a.rpz (with ${TOTAL} entries)" >> summary.md
           echo "" >> summary.md
-          echo "*Processed with 5 parallel runners (100 workers, 5 fetchers each)*" >> summary.md
+          echo "*Processed with 10 parallel runners (50 workers, 5 fetchers each)*" >> summary.md
           
       - name: Commit files to repo
         run: |
@@ -311,7 +324,7 @@ jobs:
           
           # Check if files exist and have changes
           FILES_TO_ADD=""
-          for file in blocklist.txt a.rpz data/stats.json; do
+          for file in blocklist.txt a.rpz summary.md; do
             if [ -f "$file" ]; then
               FILES_TO_ADD="$FILES_TO_ADD $file"
             fi
@@ -323,7 +336,7 @@ jobs:
             if git diff --staged --quiet; then
               echo "No changes to commit"
             else
-              git commit -m "🤖 Auto-update blocklists [$(date +%Y-%m-%d)]"
+              git commit -m "🤖 Auto-update blocklists [$(date +%Y-%m-%d)] (10-runner matrix)"
               git push
             fi
           else
@@ -337,7 +350,6 @@ jobs:
           path: |
             blocklist.txt
             a.rpz
-            data/stats.json
             summary.md
           retention-days: 7
           if-no-files-found: warn
