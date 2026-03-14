@@ -1,58 +1,4 @@
-name: Generate DNSBL with Magpie - single instance - no validation (dedupe only)
-
-on:
-  schedule:
-    - cron: '0 20 * * *'  # Runs daily at 8 PM UTC
-  workflow_dispatch:      # Allows manual trigger from GitHub UI
-
-jobs:
-  aggregate:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write      # Grants write access for commits and releases
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true  # Opt into Node.js 24
-    timeout-minutes: 30    # Reduced timeout since no validation
-    
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
-          token: ${{ secrets.GITHUB_TOKEN }}
-          
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: '1.24'
-          cache: true
-          
-      - name: Install Magpie
-        run: |
-          go install github.com/pigeonsec/magpie/cmd/magpie@latest
-          echo "✅ Magpie installed"
-          
-      - name: Show sources
-        run: |
-          echo "📋 Using sources from sources.txt:"
-          cat sources.txt
-          echo -e "\n📊 Total sources: $(grep -v '^#' sources.txt | grep -v '^$' | wc -l)"
-          
-      - name: Run Magpie (NO validation - dedupe only)
-        run: |
-          # Create data directory for stats
-          mkdir -p data
-          
-          # Run with NO DNS VALIDATION - just fetch and dedupe
-          ~/go/bin/magpie \
-            -source sources.txt \
-            -output blocklist.txt \
-            -workers 100 \
-            -fetch-workers 5 \
-            -dns=false \
-            -data-dir ./data
-          
-      - name: Generate RPZ file with full domain validation (FAST awk version)
+      - name: Generate RPZ file with full domain validation (COMPLETE awk version)
         run: |
           echo "📝 Generating RPZ format with domain validation"
           
@@ -102,13 +48,13 @@ jobs:
             echo ""
           } > "$RPZ_FILENAME"
           
-          echo "🔍 Validating domains with RFC 1035 rules (fast awk)..."
+          echo "🔍 Validating domains with COMPLETE RFC 1035 rules..."
           echo ""
           
           # Record start time
           START_TIME=$(date +%s)
           
-          # Use awk for ultra-fast processing - simplified version
+          # COMPLETE awk script with ALL validations from Python
           awk -v zone="$ZONE_NAME" -v max_len="$DNS_MAX_LENGTH" -v total="$TOTAL_DOMAINS" '
           BEGIN {
             valid = 0
@@ -131,19 +77,35 @@ jobs:
             valid_domain = 1
             reason = ""
             
-            # Must have at least one dot
-            if (domain !~ /\./) {
+            # === VALIDATION 1: Must have at least one dot ===
+            if (index(domain, ".") == 0) {
               valid_domain = 0
               reason = "no_dot"
             }
             
-            # No spaces
+            # === VALIDATION 2: No spaces ===
             if (valid_domain && domain ~ /[[:space:]]/) {
               valid_domain = 0
               reason = "has_space"
             }
             
-            # Check total FQDN length
+            # === VALIDATION 3: No non-printable or control characters ===
+            if (valid_domain) {
+              # Check each character
+              len = length(domain)
+              for (i = 1; i <= len; i++) {
+                char = substr(domain, i, 1)
+                # Get ASCII value
+                asc = index(" !\"#$%&'\''()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~", char)
+                if (asc == 0) {  # Character not in printable ASCII range
+                  valid_domain = 0
+                  reason = "non_printable"
+                  break
+                }
+              }
+            }
+            
+            # === VALIDATION 4: Total FQDN length ===
             if (valid_domain) {
               fqdn_len = length(domain) + 1 + length(zone) + 1
               if (fqdn_len > max_len) {
@@ -152,7 +114,7 @@ jobs:
               }
             }
             
-            # Check labels if still valid
+            # === VALIDATION 5: Label checks ===
             if (valid_domain) {
               n = split(domain, labels, ".")
               for (i = 1; i <= n; i++) {
@@ -161,14 +123,14 @@ jobs:
                 # Skip wildcard
                 if (label == "*") continue
                 
-                # Check label length
+                # Label length check
                 if (length(label) > 63) {
                   valid_domain = 0
-                  reason = "label_too_long"
+                  reason = "label_too_long:" length(label) ">63"
                   break
                 }
                 
-                # Check hyphen at start or end
+                # Hyphen at start or end
                 if (label ~ /^-/ || label ~ /-$/) {
                   valid_domain = 0
                   reason = "label_hyphen"
@@ -265,62 +227,3 @@ jobs:
           
           # Cleanup temp files
           rm -f valid_count.tmp rejected_count.tmp
-          
-      - name: Run stats
-        run: |
-          echo "📊 Aggregation Statistics:"
-          ~/go/bin/magpie --stats --data-dir ./data || echo "Stats not available yet"
-          
-      - name: Generate summary
-        run: |
-          if [ -f blocklist.txt ]; then
-            TOTAL=$(wc -l < blocklist.txt)
-            if [ -f a.rpz ]; then
-              VALID=$(grep -c "CNAME" a.rpz 2>/dev/null || echo "0")
-            else
-              VALID=0
-            fi
-            REJECTED=$((TOTAL - VALID))
-          else
-            TOTAL=0
-            VALID=0
-            REJECTED=0
-          fi
-          echo "## Magpie DNSBL Update (No Validation)" > summary.md
-          echo "" >> summary.md
-          echo "- **Generated:** $(date -u)" >> summary.md
-          echo "- **Total domains from sources:** $TOTAL" >> summary.md
-          echo "- **Valid domains (in RPZ):** $VALID" >> summary.md
-          echo "- **Rejected (RFC violations):** $REJECTED" >> summary.md
-          echo "- **Sources:** $(grep -v '^#' sources.txt | grep -v '^$' | wc -l)" >> summary.md
-          echo "- **RPZ file:** a.rpz (with ${VALID} entries)" >> summary.md
-          echo "" >> summary.md
-          echo "*Note: DNS validation disabled - domains filtered for RFC 1035 compliance only*" >> summary.md
-          
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: dnsbl-output
-          path: |
-            blocklist.txt
-            a.rpz
-            rejected_domains.txt
-            rejected_reasons.txt
-            data/stats.json
-            summary.md
-          retention-days: 7
-          if-no-files-found: warn
-          
-      - name: Create Release
-        if: success() && (hashFiles('blocklist.txt') != '' || hashFiles('a.rpz') != '')
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: daily-${{ github.run_number }}
-          name: "DNSBL Update #${{ github.run_number }} (No Validation)"
-          body_path: summary.md
-          files: |
-            blocklist.txt
-            a.rpz
-          make_latest: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
