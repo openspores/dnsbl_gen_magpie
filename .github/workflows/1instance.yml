@@ -1,4 +1,4 @@
-name: Generate DNSBL with Magpie - single instance - 100 workers - 5 fetchers
+name: Generate DNSBL with Magpie - single instance - no validation (dedupe only)
 
 on:
   schedule:
@@ -12,7 +12,7 @@ jobs:
       contents: write      # Grants write access for commits and releases
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true  # Opt into Node.js 24
-    timeout-minutes: 180   # Increased timeout for 500 workers
+    timeout-minutes: 30    # Reduced timeout since no validation
     
     steps:
       - name: Checkout repository
@@ -20,14 +20,6 @@ jobs:
         with:
           fetch-depth: 1
           token: ${{ secrets.GITHUB_TOKEN }}
-          
-      - name: Create go.sum for cache
-        run: |
-          # Create empty go.sum if it doesn't exist to enable caching
-          if [ ! -f go.sum ]; then
-            touch go.sum
-            echo "Created empty go.sum for cache"
-          fi
           
       - name: Setup Go
         uses: actions/setup-go@v5
@@ -46,19 +38,18 @@ jobs:
           cat sources.txt
           echo -e "\n📊 Total sources: $(grep -v '^#' sources.txt | grep -v '^$' | wc -l)"
           
-      - name: Run Magpie (DNS validation)
+      - name: Run Magpie (NO validation - dedupe only)
         run: |
           # Create data directory for stats
           mkdir -p data
           
-          # Run with OPTIMIZED WORKERS matching Magpie defaults
+          # Run with NO DNS VALIDATION - just fetch and dedupe
           ~/go/bin/magpie \
             -source sources.txt \
             -output blocklist.txt \
             -workers 100 \
             -fetch-workers 5 \
-            -dns \
-            -cache \
+            -dns=false \
             -data-dir ./data
           
       - name: Generate RPZ file
@@ -117,12 +108,14 @@ jobs:
           else
             TOTAL=0
           fi
-          echo "## Magpie DNSBL Update" > summary.md
+          echo "## Magpie DNSBL Update (No Validation)" > summary.md
           echo "" >> summary.md
           echo "- **Generated:** $(date -u)" >> summary.md
           echo "- **Total domains:** $TOTAL" >> summary.md
           echo "- **Sources:** $(grep -v '^#' sources.txt | grep -v '^$' | wc -l)" >> summary.md
           echo "- **RPZ file:** a.rpz (with ${TOTAL} entries)" >> summary.md
+          echo "" >> summary.md
+          echo "*Note: DNS validation disabled - all domains included (no filtering)*" >> summary.md
           
       - name: Commit files to repo
         run: |
@@ -148,7 +141,7 @@ jobs:
             if git diff --staged --quiet; then
               echo "No changes to commit"
             else
-              git commit -m "🤖 Auto-update blocklists [$(date +%Y-%m-%d)]"
+              git commit -m "🤖 Auto-update blocklists [$(date +%Y-%m-%d)] (no validation)"
               git push
             fi
           else
@@ -172,7 +165,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: daily-${{ github.run_number }}
-          name: "DNSBL Update #${{ github.run_number }}"
+          name: "DNSBL Update #${{ github.run_number }} (No Validation)"
           body_path: summary.md
           files: |
             blocklist.txt
