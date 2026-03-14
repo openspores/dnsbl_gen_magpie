@@ -52,9 +52,9 @@ jobs:
             -dns=false \
             -data-dir ./data
           
-      - name: Generate RPZ file (always a.rpz)
+      - name: Generate RPZ file with domain validation
         run: |
-          echo "📝 Generating RPZ format as a.rpz"
+          echo "📝 Generating RPZ format with domain validation"
           
           # Check if blocklist.txt exists and has content
           if [ ! -f blocklist.txt ] || [ ! -s blocklist.txt ]; then
@@ -64,8 +64,13 @@ jobs:
           
           # filename always a.rpz
           RPZ_FILENAME="a.rpz"
+          ZONE_NAME="a"  # From OUTPUT_FILE.replace('.rpz', '')
+          DNS_MAX_LENGTH=255
+          ZONE_OVERHEAD=$(( ${#ZONE_NAME} + 2 ))  # zone_name + leading dot + trailing dot
+          MAX_DOMAIN_LENGTH=$(( DNS_MAX_LENGTH - ZONE_OVERHEAD ))
           
           echo "📋 Using filename: $RPZ_FILENAME"
+          echo "📏 Max domain length for this zone: $MAX_DOMAIN_LENGTH chars"
           
           # Get total unique domains count
           TOTAL_DOMAINS=$(wc -l < blocklist.txt)
@@ -74,7 +79,7 @@ jobs:
           # Generate serial in YYYYMMDD01 format
           SERIAL=$(date -u +"%Y%m%d01")
           
-          # Create RPZ header using echo statements
+          # Create RPZ header
           echo "\$TTL 300" > "$RPZ_FILENAME"
           echo "" >> "$RPZ_FILENAME"
           echo "@ IN SOA router.home.arpa. admin.router.home.arpa. (" >> "$RPZ_FILENAME"
@@ -90,12 +95,73 @@ jobs:
           echo "" >> "$RPZ_FILENAME"
           echo "; Generated: ${CURRENT_DATE}" >> "$RPZ_FILENAME"
           echo "; Total unique domains: ${TOTAL_DOMAINS}" >> "$RPZ_FILENAME"
+          echo "; Max domain length for this zone: ${MAX_DOMAIN_LENGTH} chars" >> "$RPZ_FILENAME"
+          echo "; DNS FQDN max: ${DNS_MAX_LENGTH} bytes" >> "$RPZ_FILENAME"
           echo "" >> "$RPZ_FILENAME"
           
-          # Append each domain with ' CNAME .'
-          awk '{print $0 " CNAME ."}' blocklist.txt >> "$RPZ_FILENAME"
+          # Process domains with validation (filtering out ones that are too long for BIND)
+          echo "🔍 Validating domain lengths (max ${MAX_DOMAIN_LENGTH} chars)..."
           
-          echo "✅ RPZ file created: $RPZ_FILENAME (${TOTAL_DOMAINS} entries)"
+          # Create temporary file for filtered domains
+          FILTERED_FILE="filtered_domains.txt"
+          REJECTED_FILE="rejected_domains.txt"
+          
+          # Counter for rejected domains
+          REJECTED_COUNT=0
+          TOTAL_PROCESSED=0
+          
+          # Read blocklist.txt line by line and validate
+          while IFS= read -r domain; do
+            TOTAL_PROCESSED=$((TOTAL_PROCESSED + 1))
+            
+            # Skip empty lines
+            if [ -z "$domain" ]; then
+              continue
+            fi
+            
+            # Calculate FQDN length: domain.zone_name.
+            DOMAIN_LEN=${#domain}
+            FQDN_LEN=$((DOMAIN_LEN + 1 + ${#ZONE_NAME} + 1))
+            
+            if [ $FQDN_LEN -le $DNS_MAX_LENGTH ]; then
+              # Domain is valid - add to RPZ
+              echo "$domain" >> "$FILTERED_FILE"
+            else
+              # Domain is too long - count it
+              REJECTED_COUNT=$((REJECTED_COUNT + 1))
+              echo "$domain" >> "$REJECTED_FILE"
+            fi
+            
+            # Show progress every 100,000 domains
+            if [ $((TOTAL_PROCESSED % 100000)) -eq 0 ]; then
+              echo "   Processed $TOTAL_PROCESSED domains, rejected $REJECTED_COUNT so far..."
+            fi
+          done < blocklist.txt
+          
+          # Append validated domains to RPZ file
+          if [ -f "$FILTERED_FILE" ]; then
+            VALID_COUNT=$(wc -l < "$FILTERED_FILE")
+            echo "✅ $VALID_COUNT domains passed validation"
+            echo "❌ $REJECTED_COUNT domains rejected (too long for BIND)"
+            
+            # Add stats to RPZ header
+            sed -i "/; Total unique domains:/a ; Rejected domains (too long): ${REJECTED_COUNT}" "$RPZ_FILENAME"
+            
+            # Append each domain with ' CNAME .'
+            awk '{print $0 " CNAME ."}' "$FILTERED_FILE" >> "$RPZ_FILENAME"
+          else
+            echo "⚠️ No valid domains found!"
+            VALID_COUNT=0
+          fi
+          
+          # Save rejected domains list for debugging (optional)
+          if [ -f "$REJECTED_FILE" ] && [ $REJECTED_COUNT -gt 0 ]; then
+            echo "📝 Rejected domains saved to rejected_domains.txt"
+            # Uncomment to include in artifact
+            # cp "$REJECTED_FILE" rejected_domains.txt
+          fi
+          
+          echo "✅ RPZ file created: $RPZ_FILENAME (${VALID_COUNT} entries, rejected ${REJECTED_COUNT})"
           
           # Show first few lines as sample
           echo "📋 First 5 lines of $RPZ_FILENAME:"
@@ -110,17 +176,23 @@ jobs:
         run: |
           if [ -f blocklist.txt ]; then
             TOTAL=$(wc -l < blocklist.txt)
+            VALID=$(grep -c "CNAME" a.rpz 2>/dev/null || echo "0")
+            REJECTED=$((TOTAL - VALID))
           else
             TOTAL=0
+            VALID=0
+            REJECTED=0
           fi
           echo "## Magpie DNSBL Update (No Validation)" > summary.md
           echo "" >> summary.md
           echo "- **Generated:** $(date -u)" >> summary.md
-          echo "- **Total domains:** $TOTAL" >> summary.md
+          echo "- **Total domains from sources:** $TOTAL" >> summary.md
+          echo "- **Valid domains (in RPZ):** $VALID" >> summary.md
+          echo "- **Rejected (too long for BIND):** $REJECTED" >> summary.md
           echo "- **Sources:** $(grep -v '^#' sources.txt | grep -v '^$' | wc -l)" >> summary.md
-          echo "- **RPZ file:** a.rpz (with ${TOTAL} entries)" >> summary.md
+          echo "- **RPZ file:** a.rpz (with ${VALID} entries)" >> summary.md
           echo "" >> summary.md
-          echo "*Note: DNS validation disabled - all domains included (no filtering)*" >> summary.md
+          echo "*Note: DNS validation disabled - all domains included but length-filtered for BIND compatibility*" >> summary.md
           
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -129,6 +201,7 @@ jobs:
           path: |
             blocklist.txt
             a.rpz
+            rejected_domains.txt
             data/stats.json
             summary.md
           retention-days: 7
