@@ -105,13 +105,15 @@ jobs:
           echo "🔍 Validating domains with RFC 1035 rules (fast awk)..."
           echo ""
           
+          # Record start time
+          START_TIME=$(date +%s)
+          
           # Use awk for ultra-fast processing
           # This single awk script does all validation in one pass
           awk -v zone="$ZONE_NAME" -v max_len="$DNS_MAX_LENGTH" -v total="$TOTAL_DOMAINS" '
           BEGIN {
             valid = 0
             rejected = 0
-            start_time = systime()
             zone_overhead = length(zone) + 2
             max_domain_len = max_len - zone_overhead
             
@@ -194,19 +196,6 @@ jobs:
             # Progress reporting with visual bar
             if (total_processed % 5000 == 0 || total_processed == total) {
               pct = int(total_processed * 100 / total)
-              now = systime()
-              elapsed = now - start_time
-              
-              # Calculate rate and ETA
-              rate = (elapsed > 0) ? int(total_processed / elapsed) : 0
-              if (rate > 0 && total_processed < total) {
-                remaining = int((total - total_processed) / rate)
-                eta_min = int(remaining / 60)
-                eta_sec = remaining % 60
-                eta = sprintf("%02d:%02d", eta_min, eta_sec)
-              } else {
-                eta = "--:--"
-              }
               
               # Create progress bar
               filled = int(pct * bar_width / 100)
@@ -214,15 +203,9 @@ jobs:
               for (i = 0; i < filled; i++) bar = bar "█"
               for (i = filled; i < bar_width; i++) bar = bar "░"
               
-              # Format numbers with commas
-              proc_fmt = sprintf("%'d", total_processed)
-              total_fmt = sprintf("%'d", total)
-              valid_fmt = sprintf("%'d", valid)
-              rej_fmt = sprintf("%'d", rejected)
-              
-              # Print progress (using \r to overwrite)
-              printf "\r   [%s] %3d%% | %s/%s | ✅ %s | ❌ %s | %'d/s | ETA: %s", 
-                     bar, pct, proc_fmt, total_fmt, valid_fmt, rej_fmt, rate, eta
+              # Print progress (without ETA since we don't have time)
+              printf "\r   [%s] %3d%% | %d/%d | ✅ %d | ❌ %d", 
+                     bar, pct, total_processed, total, valid, rejected
             }
           }
           
@@ -235,6 +218,10 @@ jobs:
           
           # Load stats
           source stats.tmp
+          
+          # Calculate elapsed time
+          END_TIME=$(date +%s)
+          TOTAL_TIME=$((END_TIME - START_TIME))
           
           # Count rejection reasons
           echo "📊 REJECTION REASONS SUMMARY:"
@@ -276,10 +263,6 @@ jobs:
           echo "✅ RPZ file created: $RPZ_FILENAME"
           echo "   Total entries: $VALID_COUNT"
           echo "   Rejected: $REJECTED_COUNT"
-          
-          # Calculate total time
-          END_TIME=$(date +%s)
-          TOTAL_TIME=$((END_TIME - START_TIME))
           echo "   Time taken: $(printf "%02d:%02d" $((TOTAL_TIME/60)) $((TOTAL_TIME%60)))"
           
           # Show first few lines as sample
