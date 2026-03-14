@@ -1,4 +1,4 @@
-name: Generate DNSBL with Magpie (5 Runner Matrix - 40 workers)
+name: Generate DNSBL with Magpie (5 Runner Matrix - 30 workers)
 
 on:
   workflow_dispatch:      # Allows manual trigger from GitHub UI only
@@ -68,11 +68,11 @@ jobs:
             echo "✅ Successfully assigned all $TOTAL sources to 5 groups"
           fi
 
-  # Process each group with TEST workers (40 each - 200 total)
+  # Process each group with OPTIMIZED workers (30 each - 150 total)
   process-group:
     needs: split-sources
     runs-on: ubuntu-latest
-    timeout-minutes: 180
+    timeout-minutes: 360  # Increased to 6 hours for 5x30 config
     permissions:
       contents: write
     env:
@@ -152,7 +152,7 @@ jobs:
           IP=$(curl -s --connect-timeout 5 https://api.ipify.org || echo "unavailable")
           echo "   Public IP: $IP"
           echo "   Hostname: $(hostname)"
-          echo "   Worker count: 40"
+          echo "   Worker count: 30"
           echo "   Fetcher count: 5"
           echo "   Sources in group: $(wc -l < group_${{ steps.parse.outputs.group_num }}.txt)"
           
@@ -170,11 +170,11 @@ jobs:
             echo "⚠️ Group ${{ steps.parse.outputs.group_num }} has no sources, creating empty output"
             touch blocklist_part_${{ steps.parse.outputs.group_num }}.txt
           else
-            # Run with TEST WORKERS (40) to test GitHub limit hypothesis
+            # Run with OPTIMIZED WORKERS (30) for maximum valid throughput
             ~/go/bin/magpie \
               -source group_${{ steps.parse.outputs.group_num }}.txt \
               -output blocklist_part_${{ steps.parse.outputs.group_num }}.txt \
-              -workers 40 \
+              -workers 30 \
               -fetch-workers 5 \
               -dns \
               -cache \
@@ -313,7 +313,7 @@ jobs:
           echo "- **Sources:** $(grep -v '^#' sources.txt | grep -v '^$' | wc -l)" >> summary.md
           echo "- **RPZ file:** a.rpz (with ${TOTAL} entries)" >> summary.md
           echo "" >> summary.md
-          echo "*Processed with 5 parallel runners (40 workers, 5 fetchers each)*" >> summary.md
+          echo "*Processed with 5 parallel runners (30 workers, 5 fetchers each) - Optimized for maximum valid throughput*" >> summary.md
           
       - name: Commit files to repo
         run: |
@@ -334,7 +334,7 @@ jobs:
             if git diff --staged --quiet; then
               echo "No changes to commit"
             else
-              git commit -m "🤖 Auto-update blocklists [$(date +%Y-%m-%d)] (5-runner, 40-worker test)"
+              git commit -m "🤖 Auto-update blocklists [$(date +%Y-%m-%d)] (5-runner, 30-worker optimized)"
               git push
             fi
           else
