@@ -52,7 +52,7 @@ jobs:
             -dns=false \
             -data-dir ./data
           
-      - name: Generate RPZ file with full domain validation
+      - name: Generate RPZ file with full domain validation (FAST awk version)
         run: |
           echo "📝 Generating RPZ format with domain validation"
           
@@ -62,11 +62,11 @@ jobs:
             exit 1
           fi
           
-          # Configuration (mirroring Python script)
+          # Configuration
           RPZ_FILENAME="a.rpz"
-          ZONE_NAME="a"  # From OUTPUT_FILE.replace('.rpz', '')
+          ZONE_NAME="a"
           DNS_MAX_LENGTH=255
-          ZONE_OVERHEAD=$(( ${#ZONE_NAME} + 2 ))  # zone_name + leading dot + trailing dot
+          ZONE_OVERHEAD=$(( ${#ZONE_NAME} + 2 ))
           MAX_DOMAIN_LENGTH=$(( DNS_MAX_LENGTH - ZONE_OVERHEAD ))
           
           echo "📋 Using filename: $RPZ_FILENAME"
@@ -81,186 +81,166 @@ jobs:
           SERIAL=$(date -u +"%Y%m%d01")
           
           # Create RPZ header
-          echo "\$TTL 300" > "$RPZ_FILENAME"
-          echo "" >> "$RPZ_FILENAME"
-          echo "@ IN SOA router.home.arpa. admin.router.home.arpa. (" >> "$RPZ_FILENAME"
-          echo "    ${SERIAL} ; serial number in YYYYMMDD01 format" >> "$RPZ_FILENAME"
-          echo "    86400 ; Refresh (24h)" >> "$RPZ_FILENAME"
-          echo "    43200 ; Retry (12h)" >> "$RPZ_FILENAME"
-          echo "    604800 ; Expire (1 week)" >> "$RPZ_FILENAME"
-          echo "    86400 ; Negative cache TTL (24h)" >> "$RPZ_FILENAME"
-          echo ")" >> "$RPZ_FILENAME"
-          echo "" >> "$RPZ_FILENAME"
-          echo "; Name Server (NS) record" >> "$RPZ_FILENAME"
-          echo "@ IN NS router.home.arpa." >> "$RPZ_FILENAME"
-          echo "" >> "$RPZ_FILENAME"
-          echo "; Generated: ${CURRENT_DATE}" >> "$RPZ_FILENAME"
-          echo "; Total unique domains: ${TOTAL_DOMAINS}" >> "$RPZ_FILENAME"
-          echo "; Max domain length for this zone: ${MAX_DOMAIN_LENGTH} chars" >> "$RPZ_FILENAME"
-          echo "; DNS FQDN max: ${DNS_MAX_LENGTH} bytes" >> "$RPZ_FILENAME"
-          echo "" >> "$RPZ_FILENAME"
+          {
+            echo "\$TTL 300"
+            echo ""
+            echo "@ IN SOA router.home.arpa. admin.router.home.arpa. ("
+            echo "    ${SERIAL} ; serial number in YYYYMMDD01 format"
+            echo "    86400 ; Refresh (24h)"
+            echo "    43200 ; Retry (12h)"
+            echo "    604800 ; Expire (1 week)"
+            echo "    86400 ; Negative cache TTL (24h)"
+            echo ")"
+            echo ""
+            echo "; Name Server (NS) record"
+            echo "@ IN NS router.home.arpa."
+            echo ""
+            echo "; Generated: ${CURRENT_DATE}"
+            echo "; Total unique domains: ${TOTAL_DOMAINS}"
+            echo "; Max domain length for this zone: ${MAX_DOMAIN_LENGTH} chars"
+            echo "; DNS FQDN max: ${DNS_MAX_LENGTH} bytes"
+            echo ""
+          } > "$RPZ_FILENAME"
           
-          # Process domains with full validation (mirroring is_valid_domain from Python)
-          echo "🔍 Validating domains with RFC 1035 rules..."
+          echo "🔍 Validating domains with RFC 1035 rules (fast awk)..."
+          echo ""
           
-          # Create temporary files
-          FILTERED_FILE="filtered_domains.txt"
-          REJECTED_FILE="rejected_domains.txt"
-          REJECTED_REASONS="rejected_reasons.txt"
+          # Use awk for ultra-fast processing
+          # This single awk script does all validation in one pass
+          awk -v zone="$ZONE_NAME" -v max_len="$DNS_MAX_LENGTH" -v total="$TOTAL_DOMAINS" '
+          BEGIN {
+            valid = 0
+            rejected = 0
+            start_time = systime()
+            zone_overhead = length(zone) + 2
+            max_domain_len = max_len - zone_overhead
+            
+            # Progress tracking
+            last_percent = 0
+            bar_width = 50
+          }
           
-          # Counters
-          VALID_COUNT=0
-          REJECTED_COUNT=0
-          TOTAL_PROCESSED=0
+          # Skip empty lines and comments
+          /^[[:space:]]*$/ { next }
+          /^[#;]/ { next }
           
-          # Initialize reason counters (using files since bash 3 doesn't have associative arrays)
-          > "$REJECTED_REASONS"
-          
-          while IFS= read -r domain; do
-            TOTAL_PROCESSED=$((TOTAL_PROCESSED + 1))
+          {
+            total_processed++
+            domain = $0
             
-            # Skip empty lines
-            if [ -z "$domain" ]; then
-              continue
-            fi
+            # Trim whitespace
+            gsub(/^[[:space:]]+|[[:space:]]+$/, "", domain)
             
-            # Skip comments (though Magpie should have removed them)
-            first_char=$(printf '%s' "$domain" | cut -c1)
-            if [ "$first_char" = "#" ] || [ "$first_char" = ";" ]; then
-              continue
-            fi
+            # Default to valid
+            valid_domain = 1
+            reason = ""
             
-            # Initialize validation
-            VALID=true
-            REASON=""
+            # Check: must have at least one dot
+            if (index(domain, ".") == 0) {
+              valid_domain = 0
+              reason = "no_dot"
+            }
             
-            # Check 1: Must have at least one dot
-            if [[ "$domain" != *"."* ]]; then
-              VALID=false
-              REASON="no_dot"
-            fi
+            # Check: no spaces
+            if (valid_domain && domain ~ /[[:space:]]/) {
+              valid_domain = 0
+              reason = "has_space"
+            }
             
-            # Check 2: No spaces
-            if $VALID && [[ "$domain" == *" "* ]]; then
-              VALID=false
-              REASON="has_space"
-            fi
+            # Check: total FQDN length
+            if (valid_domain) {
+              fqdn_len = length(domain) + 1 + length(zone) + 1
+              if (fqdn_len > max_len) {
+                valid_domain = 0
+                reason = "fqdn_too_long:" fqdn_len ">" max_len
+              }
+            }
             
-            # Check 3: Check for invalid characters (non-printable, whitespace)
-            if $VALID; then
-              # Check for control characters (ASCII < 32 or > 126)
-              if echo "$domain" | grep -q -P '[\x00-\x1F\x7F]'; then
-                VALID=false
-                REASON="non_printable"
-              fi
-              
-              # Check for whitespace characters
-              if $VALID && echo "$domain" | grep -q -P '[\t\n\r]'; then
-                VALID=false
-                REASON="whitespace"
-              fi
-            fi
-            
-            # Check 4: Total FQDN length (domain.zone_name.)
-            if $VALID; then
-              DOMAIN_LEN=${#domain}
-              FQDN_LEN=$((DOMAIN_LEN + 1 + ${#ZONE_NAME} + 1))
-              if [ $FQDN_LEN -gt $DNS_MAX_LENGTH ]; then
-                VALID=false
-                REASON="fqdn_too_long:${FQDN_LEN}>${DNS_MAX_LENGTH}"
-              fi
-            fi
-            
-            # Check 5: Individual label lengths (max 63) and hyphen rules
-            if $VALID; then
-              # Split by dots (using tr and read)
-              echo "$domain" | tr '.' '\n' | while read -r label; do
-                # Skip wildcard label
-                if [ "$label" = "*" ]; then
-                  continue
-                fi
+            # Check labels if still valid
+            if (valid_domain) {
+              n = split(domain, labels, ".")
+              for (i = 1; i <= n; i++) {
+                label = labels[i]
                 
-                # Check label length
-                label_len=${#label}
-                if [ $label_len -gt 63 ]; then
-                  VALID=false
-                  REASON="label_too_long:${label_len}>63"
+                # Skip wildcard
+                if (label == "*") continue
+                
+                # Label length check
+                if (length(label) > 63) {
+                  valid_domain = 0
+                  reason = "label_too_long:" length(label) ">63"
                   break
-                fi
+                }
                 
-                # Check hyphen at start or end
-                first_char_label=$(printf '%s' "$label" | cut -c1)
-                last_char_label=$(printf '%s' "$label" | tail -c 2)
-                
-                if [ "$first_char_label" = "-" ] || [ "$last_char_label" = "-" ]; then
-                  VALID=false
-                  REASON="label_hyphen"
+                # Hyphen check (can't start or end with hyphen)
+                if (label ~ /^-/ || label ~ /-$/) {
+                  valid_domain = 0
+                  reason = "label_hyphen"
                   break
-                fi
-              done
+                }
+              }
+            }
+            
+            # Output result
+            if (valid_domain) {
+              print domain > "filtered_domains.txt"
+              valid++
+            } else {
+              print domain > "rejected_domains.txt"
+              print reason > "rejected_reasons.txt"
+              rejected++
+            }
+            
+            # Progress reporting with visual bar
+            if (total_processed % 5000 == 0 || total_processed == total) {
+              pct = int(total_processed * 100 / total)
+              now = systime()
+              elapsed = now - start_time
               
-              # Need to capture the loop's effect on VALID - using a subshell workaround
-              # For simplicity, we'll use a different approach: validate labels in the main shell
-              if $VALID; then
-                # Manual label splitting without subshell
-                remaining="$domain"
-                while [ -n "$remaining" ]; do
-                  # Extract first label
-                  case "$remaining" in
-                    *.*)
-                      label="${remaining%%.*}"
-                      remaining="${remaining#*.}"
-                      ;;
-                    *)
-                      label="$remaining"
-                      remaining=""
-                      ;;
-                  esac
-                  
-                  # Skip wildcard
-                  if [ "$label" = "*" ]; then
-                    continue
-                  fi
-                  
-                  # Check label length
-                  label_len=${#label}
-                  if [ $label_len -gt 63 ]; then
-                    VALID=false
-                    REASON="label_too_long:${label_len}>63"
-                    break
-                  fi
-                  
-                  # Check hyphen at start or end
-                  if [ "${label#-}" != "$label" ] || [ "${label%-}" != "$label" ]; then
-                    VALID=false
-                    REASON="label_hyphen"
-                    break
-                  fi
-                done
-              fi
-            fi
-            
-            # Final decision
-            if $VALID; then
-              echo "$domain" >> "$FILTERED_FILE"
-              VALID_COUNT=$((VALID_COUNT + 1))
-            else
-              echo "$domain" >> "$REJECTED_FILE"
-              echo "$REASON" >> "$REJECTED_REASONS"
-              REJECTED_COUNT=$((REJECTED_COUNT + 1))
-            fi
-            
-            # Show progress every 100,000 domains
-            if [ $((TOTAL_PROCESSED % 100000)) -eq 0 ]; then
-              echo "   Processed $TOTAL_PROCESSED domains, valid $VALID_COUNT, rejected $REJECTED_COUNT so far..."
-            fi
-          done < blocklist.txt
+              # Calculate rate and ETA
+              rate = (elapsed > 0) ? int(total_processed / elapsed) : 0
+              if (rate > 0 && total_processed < total) {
+                remaining = int((total - total_processed) / rate)
+                eta_min = int(remaining / 60)
+                eta_sec = remaining % 60
+                eta = sprintf("%02d:%02d", eta_min, eta_sec)
+              } else {
+                eta = "--:--"
+              }
+              
+              # Create progress bar
+              filled = int(pct * bar_width / 100)
+              bar = ""
+              for (i = 0; i < filled; i++) bar = bar "█"
+              for (i = filled; i < bar_width; i++) bar = bar "░"
+              
+              # Format numbers with commas
+              proc_fmt = sprintf("%'d", total_processed)
+              total_fmt = sprintf("%'d", total)
+              valid_fmt = sprintf("%'d", valid)
+              rej_fmt = sprintf("%'d", rejected)
+              
+              # Print progress (using \r to overwrite)
+              printf "\r   [%s] %3d%% | %s/%s | ✅ %s | ❌ %s | %'d/s | ETA: %s", 
+                     bar, pct, proc_fmt, total_fmt, valid_fmt, rej_fmt, rate, eta
+            }
+          }
+          
+          END {
+            printf "\n\n"
+            print "VALID_COUNT=" valid
+            print "REJECTED_COUNT=" rejected
+            print "TOTAL_PROCESSED=" total_processed
+          }' blocklist.txt > stats.tmp
+          
+          # Load stats
+          source stats.tmp
           
           # Count rejection reasons
-          echo ""
           echo "📊 REJECTION REASONS SUMMARY:"
-          if [ -f "$REJECTED_REASONS" ] && [ $REJECTED_COUNT -gt 0 ]; then
-            sort "$REJECTED_REASONS" | uniq -c | sort -nr | while read count reason; do
+          if [ -f rejected_reasons.txt ] && [ $REJECTED_COUNT -gt 0 ]; then
+            echo ""
+            sort rejected_reasons.txt | uniq -c | sort -nr | while read count reason; do
               printf "   %6d x %s\n" "$count" "$reason"
             done
           else
@@ -268,31 +248,39 @@ jobs:
           fi
           
           # Append validated domains to RPZ file
-          if [ -f "$FILTERED_FILE" ] && [ $VALID_COUNT -gt 0 ]; then
+          if [ -f filtered_domains.txt ] && [ $VALID_COUNT -gt 0 ]; then
+            echo ""
             echo "✅ $VALID_COUNT domains passed validation"
             echo "❌ $REJECTED_COUNT domains rejected"
             
             # Add stats to RPZ header
-            sed -i "/; Total unique domains:/a ; Rejected domains (RFC violations): ${REJECTED_COUNT}" "$RPZ_FILENAME"
-            sed -i "/; Total unique domains:/a ; Valid domains in RPZ: ${VALID_COUNT}" "$RPZ_FILENAME"
+            {
+              echo "; Valid domains in RPZ: ${VALID_COUNT}"
+              echo "; Rejected domains: ${REJECTED_COUNT}"
+            } >> "$RPZ_FILENAME"
             
             # Append each domain with ' CNAME .'
-            awk '{print $0 " CNAME ."}' "$FILTERED_FILE" >> "$RPZ_FILENAME"
+            awk '{print $0 " CNAME ."}' filtered_domains.txt >> "$RPZ_FILENAME"
           else
+            echo ""
             echo "⚠️ No valid domains found!"
             VALID_COUNT=0
           fi
           
-          # Save rejected domains list for debugging (optional)
-          if [ -f "$REJECTED_FILE" ] && [ $REJECTED_COUNT -gt 0 ]; then
+          # Save rejected domains list for debugging
+          if [ -f rejected_domains.txt ] && [ $REJECTED_COUNT -gt 0 ]; then
             echo "📝 Rejected domains saved to rejected_domains.txt"
-            # Keep for artifact
           fi
           
           echo ""
           echo "✅ RPZ file created: $RPZ_FILENAME"
           echo "   Total entries: $VALID_COUNT"
           echo "   Rejected: $REJECTED_COUNT"
+          
+          # Calculate total time
+          END_TIME=$(date +%s)
+          TOTAL_TIME=$((END_TIME - START_TIME))
+          echo "   Time taken: $(printf "%02d:%02d" $((TOTAL_TIME/60)) $((TOTAL_TIME%60)))"
           
           # Show first few lines as sample
           echo ""
