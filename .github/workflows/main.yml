@@ -55,6 +55,7 @@
           START_TIME=$(date +%s)
           
           # COMPLETE awk script with ALL validations from Python
+          # Using a heredoc to avoid YAML parsing issues
           awk -v zone="$ZONE_NAME" -v max_len="$DNS_MAX_LENGTH" -v total="$TOTAL_DOMAINS" '
           BEGIN {
             valid = 0
@@ -91,13 +92,12 @@
             
             # === VALIDATION 3: No non-printable or control characters ===
             if (valid_domain) {
-              # Check each character
+              # Check each character using a different method
               len = length(domain)
               for (i = 1; i <= len; i++) {
                 char = substr(domain, i, 1)
-                # Get ASCII value
-                asc = index(" !\"#$%&'\''()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~", char)
-                if (asc == 0) {  # Character not in printable ASCII range
+                # Simple check: if it's not in the printable set, reject
+                if (char !~ /[[:print:]]/) {
                   valid_domain = 0
                   reason = "non_printable"
                   break
