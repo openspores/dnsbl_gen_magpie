@@ -52,9 +52,9 @@ jobs:
             -dns=false \
             -data-dir ./data
           
-      - name: Generate RPZ file with date-based filename
+      - name: Generate RPZ file (always a.rpz)
         run: |
-          echo "📝 Generating RPZ format with date-based filename"
+          echo "📝 Generating RPZ format as a.rpz"
           
           # Check if blocklist.txt exists and has content
           if [ ! -f blocklist.txt ] || [ ! -s blocklist.txt ]; then
@@ -62,10 +62,8 @@ jobs:
             exit 1
           fi
           
-          # Generate date-based filename (e.g., sat_14_mar.rpz)
-          # Using date command with format: %a = abbreviated weekday, %d = day, %b = abbreviated month
-          DATE_FORMAT=$(date +"%a_%d_%b" | tr '[:upper:]' '[:lower:]')
-          RPZ_FILENAME="${DATE_FORMAT}.rpz"
+          # filename always a.rpz
+          RPZ_FILENAME="a.rpz"
           
           echo "📋 Using filename: $RPZ_FILENAME"
           
@@ -103,9 +101,6 @@ jobs:
           echo "📋 First 5 lines of $RPZ_FILENAME:"
           head -15 "$RPZ_FILENAME"
           
-          # Also create a symlink or copy to a.rpz for backward compatibility if needed
-          # ln -sf "$RPZ_FILENAME" a.rpz
-          
       - name: Run stats
         run: |
           echo "📊 Aggregation Statistics:"
@@ -123,7 +118,7 @@ jobs:
           echo "- **Generated:** $(date -u)" >> summary.md
           echo "- **Total domains:** $TOTAL" >> summary.md
           echo "- **Sources:** $(grep -v '^#' sources.txt | grep -v '^$' | wc -l)" >> summary.md
-          echo "- **RPZ file:** $(date +'%a_%d_%b' | tr '[:upper:]' '[:lower:]').rpz (with ${TOTAL} entries)" >> summary.md
+          echo "- **RPZ file:** a.rpz (with ${TOTAL} entries)" >> summary.md
           echo "" >> summary.md
           echo "*Note: DNS validation disabled - all domains included (no filtering)*" >> summary.md
           
@@ -133,14 +128,14 @@ jobs:
           name: dnsbl-output
           path: |
             blocklist.txt
-            *.rpz
+            a.rpz
             data/stats.json
             summary.md
           retention-days: 7
           if-no-files-found: warn
           
       - name: Create Release
-        if: success() && (hashFiles('blocklist.txt') != '' || hashFiles('*.rpz') != '')
+        if: success() && (hashFiles('blocklist.txt') != '' || hashFiles('a.rpz') != '')
         uses: softprops/action-gh-release@v2
         with:
           tag_name: daily-${{ github.run_number }}
@@ -148,7 +143,7 @@ jobs:
           body_path: summary.md
           files: |
             blocklist.txt
-            *.rpz
+            a.rpz
           make_latest: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
