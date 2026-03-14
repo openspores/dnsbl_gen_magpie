@@ -52,15 +52,22 @@ jobs:
             -dns=false \
             -data-dir ./data
           
-      - name: Generate RPZ file
+      - name: Generate RPZ file with date-based filename
         run: |
-          echo "📝 Generating RPZ format a.rpz from blocklist.txt"
+          echo "📝 Generating RPZ format with date-based filename"
           
           # Check if blocklist.txt exists and has content
           if [ ! -f blocklist.txt ] || [ ! -s blocklist.txt ]; then
             echo "❌ blocklist.txt is empty or missing"
             exit 1
           fi
+          
+          # Generate date-based filename (e.g., sat_14_mar.rpz)
+          # Using date command with format: %a = abbreviated weekday, %d = day, %b = abbreviated month
+          DATE_FORMAT=$(date +"%a_%d_%b" | tr '[:upper:]' '[:lower:]')
+          RPZ_FILENAME="${DATE_FORMAT}.rpz"
+          
+          echo "📋 Using filename: $RPZ_FILENAME"
           
           # Get total unique domains count
           TOTAL_DOMAINS=$(wc -l < blocklist.txt)
@@ -69,32 +76,35 @@ jobs:
           # Generate serial in YYYYMMDD01 format
           SERIAL=$(date -u +"%Y%m%d01")
           
-          # Create RPZ header using echo statements (fixes YAML heredoc issue)
-          echo "\$TTL 300" > a.rpz
-          echo "" >> a.rpz
-          echo "@ IN SOA router.home.arpa. admin.router.home.arpa. (" >> a.rpz
-          echo "    ${SERIAL} ; serial number in YYYYMMDD01 format" >> a.rpz
-          echo "    86400 ; Refresh (24h)" >> a.rpz
-          echo "    43200 ; Retry (12h)" >> a.rpz
-          echo "    604800 ; Expire (1 week)" >> a.rpz
-          echo "    86400 ; Negative cache TTL (24h)" >> a.rpz
-          echo ")" >> a.rpz
-          echo "" >> a.rpz
-          echo "; Name Server (NS) record" >> a.rpz
-          echo "@ IN NS router.home.arpa." >> a.rpz
-          echo "" >> a.rpz
-          echo "; Generated: ${CURRENT_DATE}" >> a.rpz
-          echo "; Total unique domains: ${TOTAL_DOMAINS}" >> a.rpz
-          echo "" >> a.rpz
+          # Create RPZ header using echo statements
+          echo "\$TTL 300" > "$RPZ_FILENAME"
+          echo "" >> "$RPZ_FILENAME"
+          echo "@ IN SOA router.home.arpa. admin.router.home.arpa. (" >> "$RPZ_FILENAME"
+          echo "    ${SERIAL} ; serial number in YYYYMMDD01 format" >> "$RPZ_FILENAME"
+          echo "    86400 ; Refresh (24h)" >> "$RPZ_FILENAME"
+          echo "    43200 ; Retry (12h)" >> "$RPZ_FILENAME"
+          echo "    604800 ; Expire (1 week)" >> "$RPZ_FILENAME"
+          echo "    86400 ; Negative cache TTL (24h)" >> "$RPZ_FILENAME"
+          echo ")" >> "$RPZ_FILENAME"
+          echo "" >> "$RPZ_FILENAME"
+          echo "; Name Server (NS) record" >> "$RPZ_FILENAME"
+          echo "@ IN NS router.home.arpa." >> "$RPZ_FILENAME"
+          echo "" >> "$RPZ_FILENAME"
+          echo "; Generated: ${CURRENT_DATE}" >> "$RPZ_FILENAME"
+          echo "; Total unique domains: ${TOTAL_DOMAINS}" >> "$RPZ_FILENAME"
+          echo "" >> "$RPZ_FILENAME"
           
           # Append each domain with ' CNAME .'
-          awk '{print $0 " CNAME ."}' blocklist.txt >> a.rpz
+          awk '{print $0 " CNAME ."}' blocklist.txt >> "$RPZ_FILENAME"
           
-          echo "✅ RPZ file created: a.rpz (${TOTAL_DOMAINS} entries)"
+          echo "✅ RPZ file created: $RPZ_FILENAME (${TOTAL_DOMAINS} entries)"
           
           # Show first few lines as sample
-          echo "📋 First 5 lines of a.rpz:"
-          head -15 a.rpz
+          echo "📋 First 5 lines of $RPZ_FILENAME:"
+          head -15 "$RPZ_FILENAME"
+          
+          # Also create a symlink or copy to a.rpz for backward compatibility if needed
+          # ln -sf "$RPZ_FILENAME" a.rpz
           
       - name: Run stats
         run: |
@@ -113,7 +123,7 @@ jobs:
           echo "- **Generated:** $(date -u)" >> summary.md
           echo "- **Total domains:** $TOTAL" >> summary.md
           echo "- **Sources:** $(grep -v '^#' sources.txt | grep -v '^$' | wc -l)" >> summary.md
-          echo "- **RPZ file:** a.rpz (with ${TOTAL} entries)" >> summary.md
+          echo "- **RPZ file:** $(date +'%a_%d_%b' | tr '[:upper:]' '[:lower:]').rpz (with ${TOTAL} entries)" >> summary.md
           echo "" >> summary.md
           echo "*Note: DNS validation disabled - all domains included (no filtering)*" >> summary.md
           
@@ -123,14 +133,14 @@ jobs:
           name: dnsbl-output
           path: |
             blocklist.txt
-            a.rpz
+            *.rpz
             data/stats.json
             summary.md
           retention-days: 7
           if-no-files-found: warn
           
       - name: Create Release
-        if: success() && (hashFiles('blocklist.txt') != '' || hashFiles('a.rpz') != '')
+        if: success() && (hashFiles('blocklist.txt') != '' || hashFiles('*.rpz') != '')
         uses: softprops/action-gh-release@v2
         with:
           tag_name: daily-${{ github.run_number }}
@@ -138,7 +148,7 @@ jobs:
           body_path: summary.md
           files: |
             blocklist.txt
-            a.rpz
+            *.rpz
           make_latest: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
