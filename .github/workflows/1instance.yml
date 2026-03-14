@@ -117,37 +117,6 @@ jobs:
           echo "" >> summary.md
           echo "*Note: DNS validation disabled - all domains included (no filtering)*" >> summary.md
           
-      - name: Commit files to repo
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          
-          # Check if files exist and have changes
-          FILES_TO_ADD=""
-          if [ -f blocklist.txt ]; then
-            FILES_TO_ADD="$FILES_TO_ADD blocklist.txt"
-          fi
-          if [ -f a.rpz ]; then
-            FILES_TO_ADD="$FILES_TO_ADD a.rpz"
-          fi
-          if [ -f data/stats.json ]; then
-            FILES_TO_ADD="$FILES_TO_ADD data/stats.json"
-          fi
-          
-          if [ -n "$FILES_TO_ADD" ]; then
-            git add $FILES_TO_ADD
-            
-            # Commit if there are changes
-            if git diff --staged --quiet; then
-              echo "No changes to commit"
-            else
-              git commit -m "🤖 Auto-update blocklists [$(date +%Y-%m-%d)] (no validation)"
-              git push
-            fi
-          else
-            echo "No files to commit, skipping commit"
-          fi
-          
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
