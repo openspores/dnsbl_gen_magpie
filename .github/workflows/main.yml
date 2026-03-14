@@ -52,7 +52,7 @@ jobs:
             -dns=false \
             -data-dir ./data
           
-      - name: Generate RPZ file with domain validation
+      - name: Generate RPZ file with full domain validation
         run: |
           echo "📝 Generating RPZ format with domain validation"
           
@@ -62,7 +62,7 @@ jobs:
             exit 1
           fi
           
-          # filename always a.rpz
+          # Configuration (mirroring Python script)
           RPZ_FILENAME="a.rpz"
           ZONE_NAME="a"  # From OUTPUT_FILE.replace('.rpz', '')
           DNS_MAX_LENGTH=255
@@ -71,6 +71,7 @@ jobs:
           
           echo "📋 Using filename: $RPZ_FILENAME"
           echo "📏 Max domain length for this zone: $MAX_DOMAIN_LENGTH chars"
+          echo "📏 Max FQDN length: $DNS_MAX_LENGTH bytes"
           
           # Get total unique domains count
           TOTAL_DOMAINS=$(wc -l < blocklist.txt)
@@ -99,18 +100,22 @@ jobs:
           echo "; DNS FQDN max: ${DNS_MAX_LENGTH} bytes" >> "$RPZ_FILENAME"
           echo "" >> "$RPZ_FILENAME"
           
-          # Process domains with validation (filtering out ones that are too long for BIND)
-          echo "🔍 Validating domain lengths (max ${MAX_DOMAIN_LENGTH} chars)..."
+          # Process domains with full validation (mirroring is_valid_domain from Python)
+          echo "🔍 Validating domains with RFC 1035 rules..."
           
-          # Create temporary file for filtered domains
+          # Create temporary files
           FILTERED_FILE="filtered_domains.txt"
           REJECTED_FILE="rejected_domains.txt"
+          REJECTED_REASONS="rejected_reasons.txt"
           
-          # Counter for rejected domains
+          # Counters
+          VALID_COUNT=0
           REJECTED_COUNT=0
           TOTAL_PROCESSED=0
           
-          # Read blocklist.txt line by line and validate
+          # Initialize reason counters (using files since bash 3 doesn't have associative arrays)
+          > "$REJECTED_REASONS"
+          
           while IFS= read -r domain; do
             TOTAL_PROCESSED=$((TOTAL_PROCESSED + 1))
             
@@ -119,33 +124,157 @@ jobs:
               continue
             fi
             
-            # Calculate FQDN length: domain.zone_name.
-            DOMAIN_LEN=${#domain}
-            FQDN_LEN=$((DOMAIN_LEN + 1 + ${#ZONE_NAME} + 1))
+            # Skip comments (though Magpie should have removed them)
+            first_char=$(printf '%s' "$domain" | cut -c1)
+            if [ "$first_char" = "#" ] || [ "$first_char" = ";" ]; then
+              continue
+            fi
             
-            if [ $FQDN_LEN -le $DNS_MAX_LENGTH ]; then
-              # Domain is valid - add to RPZ
+            # Initialize validation
+            VALID=true
+            REASON=""
+            
+            # Check 1: Must have at least one dot
+            if [[ "$domain" != *"."* ]]; then
+              VALID=false
+              REASON="no_dot"
+            fi
+            
+            # Check 2: No spaces
+            if $VALID && [[ "$domain" == *" "* ]]; then
+              VALID=false
+              REASON="has_space"
+            fi
+            
+            # Check 3: Check for invalid characters (non-printable, whitespace)
+            if $VALID; then
+              # Check for control characters (ASCII < 32 or > 126)
+              if echo "$domain" | grep -q -P '[\x00-\x1F\x7F]'; then
+                VALID=false
+                REASON="non_printable"
+              fi
+              
+              # Check for whitespace characters
+              if $VALID && echo "$domain" | grep -q -P '[\t\n\r]'; then
+                VALID=false
+                REASON="whitespace"
+              fi
+            fi
+            
+            # Check 4: Total FQDN length (domain.zone_name.)
+            if $VALID; then
+              DOMAIN_LEN=${#domain}
+              FQDN_LEN=$((DOMAIN_LEN + 1 + ${#ZONE_NAME} + 1))
+              if [ $FQDN_LEN -gt $DNS_MAX_LENGTH ]; then
+                VALID=false
+                REASON="fqdn_too_long:${FQDN_LEN}>${DNS_MAX_LENGTH}"
+              fi
+            fi
+            
+            # Check 5: Individual label lengths (max 63) and hyphen rules
+            if $VALID; then
+              # Split by dots (using tr and read)
+              echo "$domain" | tr '.' '\n' | while read -r label; do
+                # Skip wildcard label
+                if [ "$label" = "*" ]; then
+                  continue
+                fi
+                
+                # Check label length
+                label_len=${#label}
+                if [ $label_len -gt 63 ]; then
+                  VALID=false
+                  REASON="label_too_long:${label_len}>63"
+                  break
+                fi
+                
+                # Check hyphen at start or end
+                first_char_label=$(printf '%s' "$label" | cut -c1)
+                last_char_label=$(printf '%s' "$label" | tail -c 2)
+                
+                if [ "$first_char_label" = "-" ] || [ "$last_char_label" = "-" ]; then
+                  VALID=false
+                  REASON="label_hyphen"
+                  break
+                fi
+              done
+              
+              # Need to capture the loop's effect on VALID - using a subshell workaround
+              # For simplicity, we'll use a different approach: validate labels in the main shell
+              if $VALID; then
+                # Manual label splitting without subshell
+                remaining="$domain"
+                while [ -n "$remaining" ]; do
+                  # Extract first label
+                  case "$remaining" in
+                    *.*)
+                      label="${remaining%%.*}"
+                      remaining="${remaining#*.}"
+                      ;;
+                    *)
+                      label="$remaining"
+                      remaining=""
+                      ;;
+                  esac
+                  
+                  # Skip wildcard
+                  if [ "$label" = "*" ]; then
+                    continue
+                  fi
+                  
+                  # Check label length
+                  label_len=${#label}
+                  if [ $label_len -gt 63 ]; then
+                    VALID=false
+                    REASON="label_too_long:${label_len}>63"
+                    break
+                  fi
+                  
+                  # Check hyphen at start or end
+                  if [ "${label#-}" != "$label" ] || [ "${label%-}" != "$label" ]; then
+                    VALID=false
+                    REASON="label_hyphen"
+                    break
+                  fi
+                done
+              fi
+            fi
+            
+            # Final decision
+            if $VALID; then
               echo "$domain" >> "$FILTERED_FILE"
+              VALID_COUNT=$((VALID_COUNT + 1))
             else
-              # Domain is too long - count it
-              REJECTED_COUNT=$((REJECTED_COUNT + 1))
               echo "$domain" >> "$REJECTED_FILE"
+              echo "$REASON" >> "$REJECTED_REASONS"
+              REJECTED_COUNT=$((REJECTED_COUNT + 1))
             fi
             
             # Show progress every 100,000 domains
             if [ $((TOTAL_PROCESSED % 100000)) -eq 0 ]; then
-              echo "   Processed $TOTAL_PROCESSED domains, rejected $REJECTED_COUNT so far..."
+              echo "   Processed $TOTAL_PROCESSED domains, valid $VALID_COUNT, rejected $REJECTED_COUNT so far..."
             fi
           done < blocklist.txt
           
+          # Count rejection reasons
+          echo ""
+          echo "📊 REJECTION REASONS SUMMARY:"
+          if [ -f "$REJECTED_REASONS" ] && [ $REJECTED_COUNT -gt 0 ]; then
+            sort "$REJECTED_REASONS" | uniq -c | sort -nr | while read count reason; do
+              printf "   %6d x %s\n" "$count" "$reason"
+            done
+          else
+            echo "   No domains rejected"
+          fi
+          
           # Append validated domains to RPZ file
-          if [ -f "$FILTERED_FILE" ]; then
-            VALID_COUNT=$(wc -l < "$FILTERED_FILE")
+          if [ -f "$FILTERED_FILE" ] && [ $VALID_COUNT -gt 0 ]; then
             echo "✅ $VALID_COUNT domains passed validation"
-            echo "❌ $REJECTED_COUNT domains rejected (too long for BIND)"
+            echo "❌ $REJECTED_COUNT domains rejected"
             
             # Add stats to RPZ header
-            sed -i "/; Total unique domains:/a ; Rejected domains (too long): ${REJECTED_COUNT}" "$RPZ_FILENAME"
+            sed -i "/; Total unique domains:/a ; Rejected domains (RFC violations): ${REJECTED_COUNT}" "$RPZ_FILENAME"
+            sed -i "/; Total unique domains:/a ; Valid domains in RPZ: ${VALID_COUNT}" "$RPZ_FILENAME"
             
             # Append each domain with ' CNAME .'
             awk '{print $0 " CNAME ."}' "$FILTERED_FILE" >> "$RPZ_FILENAME"
@@ -157,13 +286,16 @@ jobs:
           # Save rejected domains list for debugging (optional)
           if [ -f "$REJECTED_FILE" ] && [ $REJECTED_COUNT -gt 0 ]; then
             echo "📝 Rejected domains saved to rejected_domains.txt"
-            # Uncomment to include in artifact
-            # cp "$REJECTED_FILE" rejected_domains.txt
+            # Keep for artifact
           fi
           
-          echo "✅ RPZ file created: $RPZ_FILENAME (${VALID_COUNT} entries, rejected ${REJECTED_COUNT})"
+          echo ""
+          echo "✅ RPZ file created: $RPZ_FILENAME"
+          echo "   Total entries: $VALID_COUNT"
+          echo "   Rejected: $REJECTED_COUNT"
           
           # Show first few lines as sample
+          echo ""
           echo "📋 First 5 lines of $RPZ_FILENAME:"
           head -15 "$RPZ_FILENAME"
           
@@ -176,7 +308,11 @@ jobs:
         run: |
           if [ -f blocklist.txt ]; then
             TOTAL=$(wc -l < blocklist.txt)
-            VALID=$(grep -c "CNAME" a.rpz 2>/dev/null || echo "0")
+            if [ -f a.rpz ]; then
+              VALID=$(grep -c "CNAME" a.rpz 2>/dev/null || echo "0")
+            else
+              VALID=0
+            fi
             REJECTED=$((TOTAL - VALID))
           else
             TOTAL=0
@@ -188,11 +324,11 @@ jobs:
           echo "- **Generated:** $(date -u)" >> summary.md
           echo "- **Total domains from sources:** $TOTAL" >> summary.md
           echo "- **Valid domains (in RPZ):** $VALID" >> summary.md
-          echo "- **Rejected (too long for BIND):** $REJECTED" >> summary.md
+          echo "- **Rejected (RFC violations):** $REJECTED" >> summary.md
           echo "- **Sources:** $(grep -v '^#' sources.txt | grep -v '^$' | wc -l)" >> summary.md
           echo "- **RPZ file:** a.rpz (with ${VALID} entries)" >> summary.md
           echo "" >> summary.md
-          echo "*Note: DNS validation disabled - all domains included but length-filtered for BIND compatibility*" >> summary.md
+          echo "*Note: DNS validation disabled - domains filtered for RFC 1035 compliance only*" >> summary.md
           
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -202,6 +338,7 @@ jobs:
             blocklist.txt
             a.rpz
             rejected_domains.txt
+            rejected_reasons.txt
             data/stats.json
             summary.md
           retention-days: 7
