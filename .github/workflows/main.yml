@@ -108,17 +108,11 @@ jobs:
           # Record start time
           START_TIME=$(date +%s)
           
-          # Use awk for ultra-fast processing
-          # This single awk script does all validation in one pass
+          # Use awk for ultra-fast processing - simplified version
           awk -v zone="$ZONE_NAME" -v max_len="$DNS_MAX_LENGTH" -v total="$TOTAL_DOMAINS" '
           BEGIN {
             valid = 0
             rejected = 0
-            zone_overhead = length(zone) + 2
-            max_domain_len = max_len - zone_overhead
-            
-            # Progress tracking
-            last_percent = 0
             bar_width = 50
           }
           
@@ -137,19 +131,19 @@ jobs:
             valid_domain = 1
             reason = ""
             
-            # Check: must have at least one dot
-            if (index(domain, ".") == 0) {
+            # Must have at least one dot
+            if (domain !~ /\./) {
               valid_domain = 0
               reason = "no_dot"
             }
             
-            # Check: no spaces
+            # No spaces
             if (valid_domain && domain ~ /[[:space:]]/) {
               valid_domain = 0
               reason = "has_space"
             }
             
-            # Check: total FQDN length
+            # Check total FQDN length
             if (valid_domain) {
               fqdn_len = length(domain) + 1 + length(zone) + 1
               if (fqdn_len > max_len) {
@@ -167,14 +161,14 @@ jobs:
                 # Skip wildcard
                 if (label == "*") continue
                 
-                # Label length check
+                # Check label length
                 if (length(label) > 63) {
                   valid_domain = 0
-                  reason = "label_too_long:" length(label) ">63"
+                  reason = "label_too_long"
                   break
                 }
                 
-                # Hyphen check (can't start or end with hyphen)
+                # Check hyphen at start or end
                 if (label ~ /^-/ || label ~ /-$/) {
                   valid_domain = 0
                   reason = "label_hyphen"
@@ -193,17 +187,15 @@ jobs:
               rejected++
             }
             
-            # Progress reporting with visual bar
-            if (total_processed % 5000 == 0 || total_processed == total) {
+            # Progress reporting
+            if (total_processed % 10000 == 0 || total_processed == total) {
               pct = int(total_processed * 100 / total)
-              
-              # Create progress bar
               filled = int(pct * bar_width / 100)
+              
               bar = ""
               for (i = 0; i < filled; i++) bar = bar "█"
               for (i = filled; i < bar_width; i++) bar = bar "░"
               
-              # Print progress (without ETA since we don't have time)
               printf "\r   [%s] %3d%% | %d/%d | ✅ %d | ❌ %d", 
                      bar, pct, total_processed, total, valid, rejected
             }
@@ -211,21 +203,22 @@ jobs:
           
           END {
             printf "\n\n"
-            print "VALID_COUNT=" valid
-            print "REJECTED_COUNT=" rejected
-            print "TOTAL_PROCESSED=" total_processed
-          }' blocklist.txt > stats.tmp
+            print valid > "valid_count.tmp"
+            print rejected > "rejected_count.tmp"
+          }' blocklist.txt
           
-          # Load stats
-          source stats.tmp
+          # Read counts from files
+          VALID_COUNT=$(cat valid_count.tmp 2>/dev/null || echo "0")
+          REJECTED_COUNT=$(cat rejected_count.tmp 2>/dev/null || echo "0")
           
           # Calculate elapsed time
           END_TIME=$(date +%s)
           TOTAL_TIME=$((END_TIME - START_TIME))
           
-          # Count rejection reasons
+          echo ""
+          echo ""
           echo "📊 REJECTION REASONS SUMMARY:"
-          if [ -f rejected_reasons.txt ] && [ $REJECTED_COUNT -gt 0 ]; then
+          if [ -f rejected_reasons.txt ] && [ -s rejected_reasons.txt ]; then
             echo ""
             sort rejected_reasons.txt | uniq -c | sort -nr | while read count reason; do
               printf "   %6d x %s\n" "$count" "$reason"
@@ -235,7 +228,7 @@ jobs:
           fi
           
           # Append validated domains to RPZ file
-          if [ -f filtered_domains.txt ] && [ $VALID_COUNT -gt 0 ]; then
+          if [ -f filtered_domains.txt ] && [ -s filtered_domains.txt ]; then
             echo ""
             echo "✅ $VALID_COUNT domains passed validation"
             echo "❌ $REJECTED_COUNT domains rejected"
@@ -255,7 +248,7 @@ jobs:
           fi
           
           # Save rejected domains list for debugging
-          if [ -f rejected_domains.txt ] && [ $REJECTED_COUNT -gt 0 ]; then
+          if [ -f rejected_domains.txt ] && [ -s rejected_domains.txt ]; then
             echo "📝 Rejected domains saved to rejected_domains.txt"
           fi
           
@@ -269,6 +262,9 @@ jobs:
           echo ""
           echo "📋 First 5 lines of $RPZ_FILENAME:"
           head -15 "$RPZ_FILENAME"
+          
+          # Cleanup temp files
+          rm -f valid_count.tmp rejected_count.tmp
           
       - name: Run stats
         run: |
