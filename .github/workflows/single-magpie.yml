@@ -1,0 +1,448 @@
+name: Generate DNSBL with Magpie (Single Instance - 100 workers)
+
+on:
+  workflow_dispatch:      # Allows manual trigger from GitHub UI only
+  schedule:
+    - cron: '0 3 * * *'  # Run daily at 3 AM
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  generate-blocklist:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    permissions:
+      contents: write
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+      GOPATH: ${{ github.workspace }}/go
+      GOBIN: ${{ github.workspace }}/go/bin
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          token: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: Create go.sum for cache
+        run: |
+          # Create empty go.sum if it doesn't exist to enable Go module caching
+          if [ ! -f go.sum ]; then
+            touch go.sum
+            echo "✅ Created empty go.sum for Go module cache"
+          else
+            echo "✅ Existing go.sum found"
+          fi
+          
+      - name: Setup Go (latest version)
+        uses: actions/setup-go@v5
+        with:
+          go-version: 'stable'  # Use latest stable Go version
+          cache: true           # Enable caching with go.sum
+          
+      - name: Verify Go version
+        run: |
+          echo "📦 Go version: $(go version)"
+          echo "   Using latest stable Go release"
+          echo "   GOPATH: $GOPATH"
+          echo "   GOBIN: $GOBIN"
+          
+      - name: Install Magpie
+        run: |
+          echo "🚀 Installing latest Magpie from github.com/pigeonsec/magpie/cmd/magpie@latest"
+          go install github.com/pigeonsec/magpie/cmd/magpie@latest
+          echo "✅ Magpie installed successfully"
+          echo ""
+          echo "📦 Magpie version information:"
+          # Add to PATH for this step
+          export PATH=$PATH:$GOBIN
+          magpie -version 2>&1 || echo "   Version info not available"
+          
+          # Show binary info
+          echo ""
+          echo "📍 Binary location: $GOBIN/magpie"
+          ls -la $GOBIN/magpie 2>/dev/null || echo "   Binary not found in expected location"
+          
+      - name: Show runner and configuration info
+        run: |
+          export PATH=$PATH:$GOBIN
+          TOTAL_SOURCES=$(grep -v '^#' sources.txt | grep -v '^$' | wc -l)
+          echo "🌐 Runner Information:"
+          echo "========================"
+          IP=$(curl -s --connect-timeout 5 https://api.ipify.org || echo "unavailable")
+          echo "   Public IP: $IP"
+          echo "   Hostname: $(hostname)"
+          echo "   OS: $(uname -a)"
+          echo ""
+          echo "⚙️ Magpie Configuration:"
+          echo "========================"
+          echo "   Workers: 100 (parallel domain validation)"
+          echo "   Fetchers: 5 (parallel URL fetching)"
+          echo "   DNS Validation: Enabled (default)"
+          echo "   HTTP Validation: Disabled"
+          echo "   DNS Caching: Enabled (5min TTL)"
+          echo "   DNS Resolvers: 6 public (Cloudflare, Google, Quad9)"
+          echo "   Smart Filtering: Enabled (3 failures = blacklist)"
+          echo "   Stats Directory: ./data"
+          echo ""
+          echo "📋 Sources Overview:"
+          echo "========================"
+          echo "   Total sources: $TOTAL_SOURCES"
+          echo ""
+          echo "📋 First 5 sources:"
+          grep -v '^#' sources.txt | grep -v '^$' | head -5 | sed 's/^/   /'
+          
+      - name: Create data directory for stats
+        run: |
+          mkdir -p ./data
+          echo "📊 Stats directory created at ./data"
+          echo ""
+          
+          # Check if stats file exists from previous run
+          if [ -f ./data/stats.json ]; then
+            echo "📊 Existing stats.json found (tracking URL health)"
+            echo "   File size: $(wc -c < ./data/stats.json) bytes"
+            echo "   Last modified: $(date -r ./data/stats.json)"
+            echo ""
+            echo "   Last run stats preview:"
+            if command -v jq &> /dev/null; then
+              # Safely preview stats.json
+              cat ./data/stats.json | jq '.' 2>/dev/null | head -20 || echo "   (invalid JSON)"
+            else
+              echo "   (install jq for pretty JSON viewing)"
+              head -10 ./data/stats.json
+            fi
+          else
+            echo "📊 No existing stats.json - will create new tracking for this run"
+          fi
+          
+      - name: Run Magpie (all sources with 100 workers)
+        run: |
+          export PATH=$PATH:$GOBIN
+          
+          # Check if sources file has content
+          CLEAN_SOURCES=$(grep -v '^#' sources.txt | grep -v '^$' | wc -l)
+          
+          if [ "$CLEAN_SOURCES" -eq 0 ]; then
+            echo "⚠️ No sources found in sources.txt, creating empty output"
+            touch blocklist.txt
+          else
+            echo "🚀 Starting Magpie with full configuration:"
+            echo "=========================================="
+            echo "   📥 Input: sources.txt ($CLEAN_SOURCES sources)"
+            echo "   📤 Output: blocklist.txt"
+            echo "   ⚡ Workers: 100"
+            echo "   🔄 Fetchers: 5"
+            echo "   🔍 DNS Validation: true"
+            echo "   🌐 HTTP Validation: false"
+            echo "   💾 DNS Cache: true"
+            echo "   📊 Data Directory: ./data"
+            echo ""
+            echo "⏱️  Starting at: $(date -u)"
+            echo ""
+            
+            # Run with 100 workers and 5 fetchers
+            # Using single dash flags as per Magpie documentation
+            magpie \
+              -source sources.txt \
+              -output blocklist.txt \
+              -workers 100 \
+              -fetch-workers 5 \
+              -dns \
+              -http=false \
+              -cache \
+              -data-dir ./data
+            
+            EXIT_CODE=$?
+            echo ""
+            echo "⏱️  Finished at: $(date -u)"
+            echo ""
+            
+            if [ $EXIT_CODE -ne 0 ]; then
+              echo "⚠️ Magpie exited with code $EXIT_CODE"
+            else
+              echo "✅ Magpie completed successfully"
+            fi
+          fi
+          
+          TOTAL_DOMAINS=$(wc -l < blocklist.txt 2>/dev/null || echo "0")
+          echo ""
+          echo "📊 Results:"
+          echo "==========="
+          echo "   Total unique domains: $TOTAL_DOMAINS"
+          
+          if [ -f ./data/stats.json ]; then
+            echo "   Stats file: ./data/stats.json ($(wc -c < ./data/stats.json) bytes)"
+          fi
+          
+      - name: Show URL health statistics
+        run: |
+          if [ -f ./data/stats.json ]; then
+            echo "📊 URL Health Statistics:"
+            echo "=========================="
+            
+            # Check if jq is available
+            if ! command -v jq &> /dev/null; then
+              echo "⚠️ jq not installed, installing for better stats display..."
+              sudo apt-get update && sudo apt-get install -y jq
+            fi
+            
+            # Safely extract stats with error handling
+            if jq empty ./data/stats.json 2>/dev/null; then
+              # Show basic stats from stats.json
+              TOTAL_URLS=$(jq '.urls | length' ./data/stats.json 2>/dev/null || echo "unknown")
+              echo "   Total tracked URLs: $TOTAL_URLS"
+              
+              # Count blacklisted URLs (3+ failures)
+              BLACKLISTED=$(jq '[.urls[] | select(.failures >= 3)] | length' ./data/stats.json 2>/dev/null || echo "0")
+              echo "   Auto-blacklisted URLs (3+ failures): $BLACKLISTED"
+              
+              # Count healthy URLs (0 failures)
+              HEALTHY=$(jq '[.urls[] | select(.failures == 0)] | length' ./data/stats.json 2>/dev/null || echo "0")
+              echo "   Healthy URLs (0 failures): $HEALTHY"
+              
+              # Total fetches
+              TOTAL_FETCHES=$(jq '[.urls[].fetches] | add' ./data/stats.json 2>/dev/null || echo "0")
+              echo "   Total fetches performed: $TOTAL_FETCHES"
+              
+              # Show top failing URLs
+              echo ""
+              echo "   Top 5 failing URLs:"
+              jq -r '.urls | to_entries | map({url: .key, failures: .value.failures}) | sort_by(.failures) | reverse | .[0:5] | .[] | "     [\(.failures) fails] \(.url)"' ./data/stats.json 2>/dev/null || echo "     No failure data available"
+              
+              # Show recently active URLs
+              echo ""
+              echo "   Recently active URLs (last 24h):"
+              jq -r '.urls | to_entries | map({url: .key, last_success: .value.last_success}) | sort_by(.last_success) | reverse | .[0:3] | .[] | "     Last success: \(.last_success // "never")\n     URL: \(.url)\n"' ./data/stats.json 2>/dev/null || echo "     No activity data available"
+            else
+              echo "   ⚠️ stats.json contains invalid JSON"
+              echo "   File content preview:"
+              head -20 ./data/stats.json | sed 's/^/   /'
+            fi
+          else
+            echo "📊 No stats.json available for this run"
+          fi
+          
+      - name: Show first few domains
+        run: |
+          if [ -s blocklist.txt ]; then
+            TOTAL=$(wc -l < blocklist.txt)
+            echo "📋 Sample of $TOTAL domains:"
+            echo "============================="
+            head -20 blocklist.txt | sed 's/^/   /'
+            
+            if [ $TOTAL -gt 20 ]; then
+              echo "   ... and $(($TOTAL - 20)) more"
+            fi
+          else
+            echo "📋 blocklist.txt is empty"
+          fi
+          
+      - name: Generate RPZ file
+        run: |
+          echo "📝 Generating RPZ format a.rpz from blocklist.txt"
+          echo "=================================================="
+          
+          if [ ! -f blocklist.txt ] || [ ! -s blocklist.txt ]; then
+            echo "⚠️ blocklist.txt is empty, creating minimal RPZ"
+            TOTAL_DOMAINS=0
+          else
+            TOTAL_DOMAINS=$(wc -l < blocklist.txt)
+          fi
+          
+          CURRENT_DATE=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          SERIAL=$(date -u +"%Y%m%d01")
+          
+          # Create RPZ header
+          {
+            echo "\$TTL 300"
+            echo ""
+            echo "@ IN SOA router.home.arpa. admin.router.home.arpa. ("
+            echo "    ${SERIAL} ; serial number in YYYYMMDD01 format"
+            echo "    86400 ; Refresh (24h)"
+            echo "    43200 ; Retry (12h)"
+            echo "    604800 ; Expire (1 week)"
+            echo "    86400 ; Negative cache TTL (24h)"
+            echo ")"
+            echo ""
+            echo "; Name Server (NS) record"
+            echo "@ IN NS router.home.arpa."
+            echo ""
+            echo "; Generated: ${CURRENT_DATE}"
+            echo "; Total unique domains: ${TOTAL_DOMAINS}"
+            echo "; DNS Validation: Enabled (6 public resolvers)"
+            echo "; Workers: 100 | Fetchers: 5"
+            echo "; Go Version: $(go version | cut -d' ' -f3)"
+            echo ""
+          } > a.rpz
+          
+          # Append each domain with ' CNAME .' if file has content
+          if [ -s blocklist.txt ]; then
+            awk '{print $0 " CNAME ."}' blocklist.txt >> a.rpz
+          fi
+          
+          echo "✅ RPZ file created: a.rpz (${TOTAL_DOMAINS} entries)"
+          echo ""
+          echo "📋 First 10 lines of a.rpz:"
+          echo "---------------------------"
+          head -20 a.rpz | sed 's/^/   /'
+          
+      - name: Generate summary
+        run: |
+          TOTAL=$(wc -l < blocklist.txt 2>/dev/null || echo "0")
+          TOTAL_SOURCES=$(grep -v '^#' sources.txt | grep -v '^$' | wc -l)
+          
+          # Get stats from stats.json if available and valid
+          BLACKLISTED_URLS=0
+          TOTAL_FETCHES=0
+          HEALTHY_URLS=0
+          if [ -f ./data/stats.json ] && command -v jq &> /dev/null; then
+            if jq empty ./data/stats.json 2>/dev/null; then
+              BLACKLISTED_URLS=$(jq '[.urls[] | select(.failures >= 3)] | length' ./data/stats.json 2>/dev/null || echo "0")
+              TOTAL_FETCHES=$(jq '[.urls[].fetches] | add' ./data/stats.json 2>/dev/null || echo "0")
+              HEALTHY_URLS=$(jq '[.urls[] | select(.failures == 0)] | length' ./data/stats.json 2>/dev/null || echo "0")
+            fi
+          fi
+          
+          GO_VERSION=$(go version | cut -d' ' -f3)
+          RUN_NUMBER=${{ github.run_number }}
+          RUN_ID=${{ github.run_id }}
+          
+          cat > summary.md << EOF
+## Magpie DNSBL Update #${RUN_NUMBER}
+
+**Generated:** $(date -u)  
+**Run ID:** ${RUN_ID}
+
+### 📊 Statistics
+- **Total unique domains:** $TOTAL
+- **Sources processed:** $TOTAL_SOURCES
+- **Auto-blacklisted URLs:** $BLACKLISTED_URLS (3+ failures)
+- **Healthy URLs:** $HEALTHY_URLS (0 failures)
+- **Total fetches tracked:** $TOTAL_FETCHES
+
+### 📁 Output Files
+- **Domain list:** \`blocklist.txt\` (${TOTAL} domains)
+- **RPZ format:** \`a.rpz\` (${TOTAL} entries)
+- **URL health stats:** \`data/stats.json\`
+
+### ⚙️ Configuration
+- **Workers:** 100 (parallel domain validation)
+- **Fetchers:** 5 (parallel URL fetching)
+- **DNS Validation:** Enabled (6 public resolvers: Cloudflare, Google, Quad9)
+- **DNS Caching:** Enabled (5 minute TTL)
+- **HTTP Validation:** Disabled (for maximum performance)
+- **Smart Filtering:** Enabled (URL health tracking in \`./data/stats.json\`)
+- **Go Version:** ${GO_VERSION}
+
+### 🚀 Performance Notes
+- DNS validation typically processes ~151 domains/second with 50 workers
+- With 100 workers, expect even faster processing
+- URLs with 3+ failures are automatically blacklisted and skipped
+- Stats persist between runs for continuous health monitoring
+
+### 🔧 How to Use
+\`\`\`bash
+# Use with Pi-hole, AdGuard, or any DNS sinkhole
+wget https://github.com/${{ github.repository }}/releases/download/daily-${RUN_NUMBER}/blocklist.txt
+
+# Or use the RPZ format
+wget https://github.com/${{ github.repository }}/releases/download/daily-${RUN_NUMBER}/a.rpz
+\`\`\`
+
+---
+
+*Processed with [Magpie](https://github.com/pigeonsec/magpie) - High-performance blocklist aggregator*
+EOF
+          
+          echo "📝 Summary generated successfully"
+          echo ""
+          cat summary.md
+          
+      - name: Commit files to repo
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Check if files exist and have changes
+          FILES_TO_ADD=""
+          for file in blocklist.txt a.rpz summary.md; do
+            if [ -f "$file" ]; then
+              FILES_TO_ADD="$FILES_TO_ADD $file"
+            fi
+          done
+          
+          # Always commit stats.json to track URL health over time
+          if [ -f ./data/stats.json ]; then
+            FILES_TO_ADD="$FILES_TO_ADD ./data/stats.json"
+          fi
+          
+          # Commit go.sum if it was created/modified and has content
+          if [ -f go.sum ] && [ -s go.sum ]; then
+            FILES_TO_ADD="$FILES_TO_ADD go.sum"
+          fi
+          
+          if [ -n "$FILES_TO_ADD" ]; then
+            git add $FILES_TO_ADD
+            
+            if git diff --staged --quiet; then
+              echo "No changes to commit"
+            else
+              TOTAL_DOMAINS=$(wc -l < blocklist.txt 2>/dev/null || echo "0")
+              git commit -m "🤖 Auto-update blocklists [$(date +%Y-%m-%d)]
+
+- Workers: 100 | Fetchers: 5
+- Total domains: $TOTAL_DOMAINS
+- DNS validation: Enabled
+- URL health tracking: stats.json
+- Go version: $(go version | cut -d' ' -f3)"
+              
+              echo "Pushing changes to repository..."
+              git push
+              echo "✅ Changes committed and pushed successfully"
+            fi
+          else
+            echo "No files to commit, skipping commit"
+          fi
+          
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dnsbl-output
+          path: |
+            blocklist.txt
+            a.rpz
+            summary.md
+            ./data/stats.json
+            go.sum
+          retention-days: 7
+          if-no-files-found: warn
+          
+      - name: Create Release
+        if: success() && (hashFiles('blocklist.txt') != '' || hashFiles('a.rpz') != '')
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: daily-${{ github.run_number }}
+          name: "DNSBL Update #${{ github.run_number }} - $(date +%Y-%m-%d)"
+          body_path: summary.md
+          files: |
+            blocklist.txt
+            a.rpz
+          make_latest: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: Final status
+        run: |
+          echo "🎉 Workflow completed successfully!"
+          echo "================================"
+          echo "📊 Final Statistics:"
+          echo "   Domains: $(wc -l < blocklist.txt 2>/dev/null || echo '0')"
+          echo "   RPZ entries: $(grep -c 'CNAME .' a.rpz 2>/dev/null || echo '0')"
+          echo "   Sources: $(grep -v '^#' sources.txt | grep -v '^$' | wc -l)"
+          echo ""
+          echo "📁 Artifacts saved for 7 days"
+          echo "🏷️  Release created: daily-${{ github.run_number }}"
