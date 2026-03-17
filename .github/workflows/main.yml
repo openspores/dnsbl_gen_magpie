@@ -1,229 +1,271 @@
-      - name: Generate RPZ file with full domain validation (COMPLETE awk version)
+name: Generate Blocklist
+
+on:
+  workflow_dispatch:
+    inputs:
+      dns_validation:
+        description: 'Enable DNS validation'
+        type: boolean
+        default: false
+        required: false
+      http_validation:
+        description: 'Enable HTTP validation (in addition to DNS)'
+        type: boolean
+        default: false
+        required: false
+      workers:
+        description: 'Number of validation workers'
+        type: number
+        default: 100
+        required: false
+      fetch_workers:
+        description: 'Number of URL fetchers'
+        type: number
+        default: 5
+        required: false
+      quiet_mode:
+        description: 'Quiet mode - minimal output'
+        type: boolean
+        default: true
+        required: false
+      release_version:
+        description: 'Release version (e.g., v1.0.0 or leave empty for auto)'
+        type: string
+        default: ''
+        required: false
+      prerelease:
+        description: 'Mark as pre-release'
+        type: boolean
+        default: false
+        required: false
+
+jobs:
+  generate-blocklist:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+          cache: true
+
+      - name: Install Magpie
         run: |
-          echo "📝 Generating RPZ format with domain validation"
-          
-          # Check if blocklist.txt exists and has content
-          if [ ! -f blocklist.txt ] || [ ! -s blocklist.txt ]; then
-            echo "❌ blocklist.txt is empty or missing"
+          go install github.com/pigeonsec/magpie/cmd/magpie@latest
+          echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
+
+      - name: Verify sources.txt exists
+        run: |
+          if [ ! -f "sources.txt" ]; then
+            echo "❌ Error: sources.txt not found in repository root"
+            echo ""
+            echo "Please create a sources.txt file with one blocklist URL per line:"
+            echo ""
+            echo "Example:"
+            echo "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts"
+            echo "https://v.firebog.net/hosts/static/w3kbl.txt"
+            echo "https://raw.githubusercontent.com/PolishFiltersTeam/KADhosts/master/KADhosts.txt"
             exit 1
           fi
           
-          # Configuration
-          RPZ_FILENAME="a.rpz"
-          ZONE_NAME="a"
-          DNS_MAX_LENGTH=255
-          ZONE_OVERHEAD=$(( ${#ZONE_NAME} + 2 ))
-          MAX_DOMAIN_LENGTH=$(( DNS_MAX_LENGTH - ZONE_OVERHEAD ))
+          SOURCE_COUNT=$(grep -v '^#' sources.txt | grep -v '^$' | wc -l)
+          echo "✅ Found sources.txt with $SOURCE_COUNT sources"
+          echo "source_count=$SOURCE_COUNT" >> $GITHUB_OUTPUT
+
+      - name: Display sources
+        run: |
+          echo "📋 Sources to process:"
+          echo "---------------------"
+          grep -v '^#' sources.txt | grep -v '^$' | cat -n
+          echo "---------------------"
+
+      - name: Run Magpie
+        id: magpie
+        run: |
+          # Build command based on inputs
+          CMD="magpie -s sources.txt -o blocklist.txt"
           
-          echo "📋 Using filename: $RPZ_FILENAME"
-          echo "📏 Max domain length for this zone: $MAX_DOMAIN_LENGTH chars"
-          echo "📏 Max FQDN length: $DNS_MAX_LENGTH bytes"
-          
-          # Get total unique domains count
-          TOTAL_DOMAINS=$(wc -l < blocklist.txt)
-          CURRENT_DATE=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
-          
-          # Generate serial in YYYYMMDD01 format
-          SERIAL=$(date -u +"%Y%m%d01")
-          
-          # Create RPZ header
-          {
-            echo "\$TTL 300"
-            echo ""
-            echo "@ IN SOA router.home.arpa. admin.router.home.arpa. ("
-            echo "    ${SERIAL} ; serial number in YYYYMMDD01 format"
-            echo "    86400 ; Refresh (24h)"
-            echo "    43200 ; Retry (12h)"
-            echo "    604800 ; Expire (1 week)"
-            echo "    86400 ; Negative cache TTL (24h)"
-            echo ")"
-            echo ""
-            echo "; Name Server (NS) record"
-            echo "@ IN NS router.home.arpa."
-            echo ""
-            echo "; Generated: ${CURRENT_DATE}"
-            echo "; Total unique domains: ${TOTAL_DOMAINS}"
-            echo "; Max domain length for this zone: ${MAX_DOMAIN_LENGTH} chars"
-            echo "; DNS FQDN max: ${DNS_MAX_LENGTH} bytes"
-            echo ""
-          } > "$RPZ_FILENAME"
-          
-          echo "🔍 Validating domains with COMPLETE RFC 1035 rules..."
-          echo ""
-          
-          # Record start time
-          START_TIME=$(date +%s)
-          
-          # COMPLETE awk script with ALL validations from Python
-          # Using a heredoc to avoid YAML parsing issues
-          awk -v zone="$ZONE_NAME" -v max_len="$DNS_MAX_LENGTH" -v total="$TOTAL_DOMAINS" '
-          BEGIN {
-            valid = 0
-            rejected = 0
-            bar_width = 50
-          }
-          
-          # Skip empty lines and comments
-          /^[[:space:]]*$/ { next }
-          /^[#;]/ { next }
-          
-          {
-            total_processed++
-            domain = $0
-            
-            # Trim whitespace
-            gsub(/^[[:space:]]+|[[:space:]]+$/, "", domain)
-            
-            # Default to valid
-            valid_domain = 1
-            reason = ""
-            
-            # === VALIDATION 1: Must have at least one dot ===
-            if (index(domain, ".") == 0) {
-              valid_domain = 0
-              reason = "no_dot"
-            }
-            
-            # === VALIDATION 2: No spaces ===
-            if (valid_domain && domain ~ /[[:space:]]/) {
-              valid_domain = 0
-              reason = "has_space"
-            }
-            
-            # === VALIDATION 3: No non-printable or control characters ===
-            if (valid_domain) {
-              # Check each character using a different method
-              len = length(domain)
-              for (i = 1; i <= len; i++) {
-                char = substr(domain, i, 1)
-                # Simple check: if it's not in the printable set, reject
-                if (char !~ /[[:print:]]/) {
-                  valid_domain = 0
-                  reason = "non_printable"
-                  break
-                }
-              }
-            }
-            
-            # === VALIDATION 4: Total FQDN length ===
-            if (valid_domain) {
-              fqdn_len = length(domain) + 1 + length(zone) + 1
-              if (fqdn_len > max_len) {
-                valid_domain = 0
-                reason = "fqdn_too_long:" fqdn_len ">" max_len
-              }
-            }
-            
-            # === VALIDATION 5: Label checks ===
-            if (valid_domain) {
-              n = split(domain, labels, ".")
-              for (i = 1; i <= n; i++) {
-                label = labels[i]
-                
-                # Skip wildcard
-                if (label == "*") continue
-                
-                # Label length check
-                if (length(label) > 63) {
-                  valid_domain = 0
-                  reason = "label_too_long:" length(label) ">63"
-                  break
-                }
-                
-                # Hyphen at start or end
-                if (label ~ /^-/ || label ~ /-$/) {
-                  valid_domain = 0
-                  reason = "label_hyphen"
-                  break
-                }
-              }
-            }
-            
-            # Output result
-            if (valid_domain) {
-              print domain > "filtered_domains.txt"
-              valid++
-            } else {
-              print domain > "rejected_domains.txt"
-              print reason > "rejected_reasons.txt"
-              rejected++
-            }
-            
-            # Progress reporting
-            if (total_processed % 10000 == 0 || total_processed == total) {
-              pct = int(total_processed * 100 / total)
-              filled = int(pct * bar_width / 100)
-              
-              bar = ""
-              for (i = 0; i < filled; i++) bar = bar "█"
-              for (i = filled; i < bar_width; i++) bar = bar "░"
-              
-              printf "\r   [%s] %3d%% | %d/%d | ✅ %d | ❌ %d", 
-                     bar, pct, total_processed, total, valid, rejected
-            }
-          }
-          
-          END {
-            printf "\n\n"
-            print valid > "valid_count.tmp"
-            print rejected > "rejected_count.tmp"
-          }' blocklist.txt
-          
-          # Read counts from files
-          VALID_COUNT=$(cat valid_count.tmp 2>/dev/null || echo "0")
-          REJECTED_COUNT=$(cat rejected_count.tmp 2>/dev/null || echo "0")
-          
-          # Calculate elapsed time
-          END_TIME=$(date +%s)
-          TOTAL_TIME=$((END_TIME - START_TIME))
-          
-          echo ""
-          echo ""
-          echo "📊 REJECTION REASONS SUMMARY:"
-          if [ -f rejected_reasons.txt ] && [ -s rejected_reasons.txt ]; then
-            echo ""
-            sort rejected_reasons.txt | uniq -c | sort -nr | while read count reason; do
-              printf "   %6d x %s\n" "$count" "$reason"
-            done
+          # DNS validation (default false per user request)
+          if [ "${{ github.event.inputs.dns_validation }}" == "true" ]; then
+            CMD="$CMD -dns=true"
           else
-            echo "   No domains rejected"
+            CMD="$CMD -dns=false"
           fi
           
-          # Append validated domains to RPZ file
-          if [ -f filtered_domains.txt ] && [ -s filtered_domains.txt ]; then
-            echo ""
-            echo "✅ $VALID_COUNT domains passed validation"
-            echo "❌ $REJECTED_COUNT domains rejected"
-            
-            # Add stats to RPZ header
-            {
-              echo "; Valid domains in RPZ: ${VALID_COUNT}"
-              echo "; Rejected domains: ${REJECTED_COUNT}"
-            } >> "$RPZ_FILENAME"
-            
-            # Append each domain with ' CNAME .'
-            awk '{print $0 " CNAME ."}' filtered_domains.txt >> "$RPZ_FILENAME"
+          # HTTP validation
+          if [ "${{ github.event.inputs.http_validation }}" == "true" ]; then
+            CMD="$CMD -http=true"
+          fi
+          
+          # Workers and fetchers
+          CMD="$CMD -workers ${{ github.event.inputs.workers }}"
+          CMD="$CMD -fetch-workers ${{ github.event.inputs.fetch_workers }}"
+          
+          # Quiet mode
+          if [ "${{ github.event.inputs.quiet_mode }}" == "true" ]; then
+            CMD="$CMD -quiet"
+          fi
+          
+          echo "🚀 Running: $CMD"
+          echo "---------------------"
+          
+          # Create data directory for stats
+          mkdir -p data
+          
+          # Execute and capture output
+          eval $CMD 2>&1 | tee magpie_output.log
+          
+          # Check if blocklist was created
+          if [ -f "blocklist.txt" ]; then
+            DOMAIN_COUNT=$(wc -l < blocklist.txt)
+            FILE_SIZE=$(du -h blocklist.txt | cut -f1)
+            echo "✅ Blocklist generated successfully with $DOMAIN_COUNT domains"
+            echo "domain_count=$DOMAIN_COUNT" >> $GITHUB_OUTPUT
+            echo "file_size=$FILE_SIZE" >> $GITHUB_OUTPUT
           else
+            echo "❌ Failed to generate blocklist.txt"
+            exit 1
+          fi
+
+      - name: Show blocklist stats
+        run: |
+          if [ -f "blocklist.txt" ]; then
+            echo "📊 Blocklist Statistics:"
+            echo "---------------------"
+            echo "Total domains: $(wc -l < blocklist.txt)"
+            echo "File size: $(du -h blocklist.txt | cut -f1)"
             echo ""
-            echo "⚠️ No valid domains found!"
-            VALID_COUNT=0
+            echo "First 10 entries (sample):"
+            head -10 blocklist.txt | sed 's/^/  /'
+            echo ""
+            echo "Last 10 entries (sample):"
+            tail -10 blocklist.txt | sed 's/^/  /'
+          fi
+
+      - name: Show Magpie stats (if available)
+        run: |
+          if [ -f "data/stats.json" ]; then
+            echo "📈 Magpie Statistics:"
+            echo "---------------------"
+            ./magpie --stats --data-dir ./data || echo "Stats display failed"
+          fi
+
+      - name: Create release tag
+        id: tag
+        run: |
+          # Generate version if not provided
+          if [ -z "${{ github.event.inputs.release_version }}" ]; then
+            DATE_TAG="blocklist-$(date +%Y%m%d-%H%M%S)"
+            echo "version=$DATE_TAG" >> $GITHUB_OUTPUT
+            echo "release_name=Blocklist $DATE_TAG" >> $GITHUB_OUTPUT
+          else
+            VERSION="${{ github.event.inputs.release_version }}"
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+            echo "release_name=Blocklist $VERSION" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create release notes
+        id: release_notes
+        run: |
+          VALIDATION_MODE="No validation"
+          if [ "${{ github.event.inputs.dns_validation }}" == "true" ] && [ "${{ github.event.inputs.http_validation }}" == "true" ]; then
+            VALIDATION_MODE="DNS + HTTP"
+          elif [ "${{ github.event.inputs.dns_validation }}" == "true" ]; then
+            VALIDATION_MODE="DNS only"
+          elif [ "${{ github.event.inputs.http_validation }}" == "true" ]; then
+            VALIDATION_MODE="HTTP only"
           fi
           
-          # Save rejected domains list for debugging
-          if [ -f rejected_domains.txt ] && [ -s rejected_domains.txt ]; then
-            echo "📝 Rejected domains saved to rejected_domains.txt"
-          fi
+          cat > release_notes.md << EOF
+          ## 📋 Blocklist Release
           
-          echo ""
-          echo "✅ RPZ file created: $RPZ_FILENAME"
-          echo "   Total entries: $VALID_COUNT"
-          echo "   Rejected: $REJECTED_COUNT"
-          echo "   Time taken: $(printf "%02d:%02d" $((TOTAL_TIME/60)) $((TOTAL_TIME%60)))"
+          ### 📊 Summary
+          - **Domains:** ${{ steps.magpie.outputs.domain_count }}
+          - **File Size:** ${{ steps.magpie.outputs.file_size }}
+          - **Sources:** ${{ steps.verify.outputs.source_count }}
+          - **Validation:** $VALIDATION_MODE
+          - **Workers:** ${{ github.event.inputs.workers }}
+          - **Fetchers:** ${{ github.event.inputs.fetch_workers }}
           
-          # Show first few lines as sample
-          echo ""
-          echo "📋 First 5 lines of $RPZ_FILENAME:"
-          head -15 "$RPZ_FILENAME"
+          ### 📅 Generated
+          $(date -u "+%Y-%m-%d %H:%M:%S UTC")
           
-          # Cleanup temp files
-          rm -f valid_count.tmp rejected_count.tmp
+          ### 🔗 Sources Processed
+          $(grep -v '^#' sources.txt | grep -v '^$' | sed 's/^/- /')
+          
+          ### 📈 Validation Statistics
+          $(if [ -f "data/stats.json" ]; then
+            echo "\`\`\`json"
+            cat data/stats.json | jq '.' 2>/dev/null || cat data/stats.json
+            echo "\`\`\`"
+          else
+            echo "*No statistics available*"
+          fi)
+          
+          ### ⚡ Performance
+          - **Workflow Run:** \${{ github.run_id }}
+          - **Triggered by:** @\${{ github.actor }}
+          
+          ---
+          *Generated by Magpie blocklist aggregator*
+          EOF
+
+      - name: Create Release
+        id: create_release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.version }}
+          name: ${{ steps.tag.outputs.release_name }}
+          body_path: release_notes.md
+          prerelease: ${{ github.event.inputs.prerelease }}
+          files: |
+            blocklist.txt
+            data/stats.json
+            magpie_output.log
+          generate_release_notes: false
+          fail_on_unmatched_files: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload additional artifacts (backup)
+        uses: actions/upload-artifact@v4
+        with:
+          name: blocklist-backup-${{ steps.tag.outputs.version }}
+          path: |
+            blocklist.txt
+            data/stats.json
+            magpie_output.log
+            sources.txt
+          retention-days: 30
+          if-no-files-found: warn
+
+      - name: Summary
+        run: |
+          echo "## ✅ Blocklist Generation Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| **Domains** | ${{ steps.magpie.outputs.domain_count }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **File Size** | ${{ steps.magpie.outputs.file_size }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Sources** | ${{ steps.verify.outputs.source_count }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **DNS Validation** | ${{ github.event.inputs.dns_validation }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **HTTP Validation** | ${{ github.event.inputs.http_validation }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Workers** | ${{ github.event.inputs.workers }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Fetchers** | ${{ github.event.inputs.fetch_workers }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📦 Release Created" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Release:** [${{ steps.tag.outputs.release_name }}](${{ steps.create_release.outputs.url }})" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Download blocklist:** [blocklist.txt](${{ steps.create_release.outputs.upload_url }}/assets/blocklist.txt)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "---" >> $GITHUB_STEP_SUMMARY
+          echo "🔁 **Artifacts backup** also available in workflow run" >> $GITHUB_STEP_SUMMARY
